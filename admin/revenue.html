@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>매출관리 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>매출관리</h1>
+      <button class="btn btn-primary" id="new-payment-btn" type="button">+ 매출 입력</button>
+    </div>
+
+    <div class="card hidden" id="payment-form-wrap">
+      <h2 id="payment-form-title">매출 입력</h2>
+      <form id="payment-form" class="form-grid">
+        <input type="hidden" name="id">
+        <div class="field">
+          <label>회원</label>
+          <select name="member_id" required><option value="">회원을 선택하세요</option></select>
+        </div>
+        <div class="field"><label>금액</label><input type="number" name="amount" min="0" required></div>
+        <div class="field">
+          <label>결제수단</label>
+          <select name="payment_method">
+            <option value="card">카드</option>
+            <option value="cash">현금</option>
+            <option value="transfer">계좌이체</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+        <div class="field"><label>결제일</label><input type="date" name="paid_at" required></div>
+        <div class="field" style="align-self:end; display:flex; gap:8px;">
+          <button class="btn btn-primary" type="submit">저장</button>
+          <button class="btn btn-outline" type="button" id="cancel-payment-form">취소</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="form-grid" style="align-items:end;">
+        <div class="field"><label for="from-date">시작일</label><input type="date" id="from-date"></div>
+        <div class="field"><label for="to-date">종료일</label><input type="date" id="to-date"></div>
+        <div class="field">
+          <label for="method-filter">결제수단</label>
+          <select id="method-filter">
+            <option value="">전체</option>
+            <option value="card">카드</option>
+            <option value="cash">현금</option>
+            <option value="transfer">계좌이체</option>
+            <option value="other">기타</option>
+          </select>
+        </div>
+        <div class="field" style="align-self:end;">
+          <button class="btn btn-primary" id="filter-btn" type="button" style="width:100%">조회</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-grid mt-16">
+      <div class="stat-card">
+        <div class="label">조회 기간 매출 합계</div>
+        <div class="value" id="total-revenue">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">결제 건수</div>
+        <div class="value" id="total-count">-</div>
+      </div>
+    </div>
+
+    <div class="card mt-16">
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>결제일</th><th>회원</th><th>이용권</th><th>결제수단</th><th class="numeric">금액</th><th></th></tr></thead>
+          <tbody id="payment-rows"><tr><td colspan="5" class="empty-state">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/revenue.js"></script>
+</body>
+</html>

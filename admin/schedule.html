@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시간표 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>시간표</h1>
+      <button class="btn btn-primary owner-only" id="new-class-btn" type="button">+ 새 수업</button>
+    </div>
+
+    <div class="card hidden owner-only" id="class-form-wrap">
+      <h2 id="class-form-title">새 수업 등록</h2>
+      <form id="class-form" class="form-grid">
+        <input type="hidden" name="id">
+        <div class="field">
+          <label>회원</label>
+          <select name="member_id" required><option value="">회원을 선택하세요</option></select>
+        </div>
+        <div class="field"><label>날짜</label><input type="date" name="class_date" required></div>
+        <div class="field"><label>시작 시간</label><input type="text" name="start_time" placeholder="예: 07:00" required></div>
+        <div class="field">
+          <label>담당 강사</label>
+          <select name="instructor_id"><option value="">미배정</option></select>
+        </div>
+        <div class="field" style="align-self:end; display:flex; gap:8px;">
+          <button class="btn btn-primary" type="submit">저장</button>
+          <button class="btn btn-outline" type="button" id="cancel-class-form">취소</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="flex-between mt-16" style="margin-top:0;">
+        <div class="view-tabs">
+          <button type="button" class="active" data-view-btn="week">주간</button>
+          <button type="button" data-view-btn="month">월간</button>
+        </div>
+        <div class="month-nav" id="week-nav">
+          <button class="btn btn-outline btn-sm" type="button" id="prev-week">‹ 이전주</button>
+          <strong id="week-label" style="min-width:150px; text-align:center; display:inline-block;"></strong>
+          <button class="btn btn-outline btn-sm" type="button" id="next-week">다음주 ›</button>
+        </div>
+        <div class="month-nav hidden" id="month-nav">
+          <button class="btn btn-outline btn-sm" type="button" id="prev-month">‹ 이전달</button>
+          <strong id="month-label" style="min-width:110px; text-align:center; display:inline-block;"></strong>
+          <button class="btn btn-outline btn-sm" type="button" id="next-month">다음달 ›</button>
+        </div>
+      </div>
+      <div id="schedule-body" class="mt-16"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/schedule.js"></script>
+</body>
+</html>

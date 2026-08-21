@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>회원관리 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>회원관리</h1>
+    </div>
+
+    <div class="card">
+      <div class="flex-between">
+        <h2>회원 목록</h2>
+        <div style="display:flex; gap:8px;">
+          <input type="search" id="search-input" placeholder="이름으로 검색" style="padding:.6em .9em; border:1.5px solid var(--border); border-radius:10px;">
+          <button class="btn btn-primary owner-only" id="new-member-btn" type="button">+ 신규 회원</button>
+        </div>
+      </div>
+
+      <div id="new-member-form-wrap" class="hidden owner-only mt-16">
+        <form id="new-member-form" class="form-grid">
+          <div class="field"><label>이름</label><input name="name" required></div>
+          <div class="field"><label>전화번호</label><input name="phone" placeholder="010-0000-0000"></div>
+          <div class="field">
+            <label>상태</label>
+            <select name="status">
+              <option value="active">활성</option>
+              <option value="trial">체험수업</option>
+            </select>
+          </div>
+          <div class="field"><label>선호 요일/시간</label><input name="preferred_schedule" placeholder="예: 월,수,금 오전 7시"></div>
+          <div class="field"><label>메모</label><input name="memo"></div>
+          <div class="field" style="align-self:end;">
+            <button class="btn btn-primary" type="submit" style="width:100%">등록</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="table-wrap mt-16">
+        <table>
+          <thead><tr><th>이름</th><th>상태</th><th>연락처</th><th>선호 요일/시간</th><th>총 이용횟수</th><th>잔여횟수</th><th></th></tr></thead>
+          <tbody id="member-rows"><tr><td colspan="7" class="empty-state">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card hidden" id="detail-card">
+      <div class="flex-between">
+        <div>
+          <h2><span id="detail-name">-</span> <span class="badge" id="detail-status" style="font-size:.7rem; vertical-align:middle;"></span></h2>
+          <p id="detail-phone" style="color:var(--text-muted); margin:0;"></p>
+          <p id="detail-preferred" style="color:var(--text-muted); margin:0;"></p>
+          <p id="detail-memo" style="color:var(--text-muted); margin:.3em 0 0;"></p>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <select id="status-select" class="owner-only" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+            <option value="active">활성</option>
+            <option value="trial">체험수업</option>
+            <option value="withdrawn">탈퇴</option>
+          </select>
+          <button class="btn btn-outline btn-sm owner-only" id="edit-member-btn" type="button">회원정보 수정</button>
+          <button class="btn btn-outline btn-sm" id="close-detail" type="button">닫기</button>
+        </div>
+      </div>
+
+      <div id="edit-member-form-wrap" class="hidden owner-only mt-16">
+        <form id="edit-member-form" class="form-grid">
+          <div class="field"><label>이름</label><input name="name" required></div>
+          <div class="field"><label>전화번호</label><input name="phone" placeholder="010-0000-0000"></div>
+          <div class="field"><label>선호 요일/시간</label><input name="preferred_schedule" placeholder="예: 월,수,금 오전 7시"></div>
+          <div class="field"><label>메모</label><input name="memo"></div>
+          <div class="field" style="align-self:end; display:flex; gap:8px;">
+            <button class="btn btn-primary" type="submit">저장</button>
+            <button class="btn btn-outline" type="button" id="cancel-edit-member">취소</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="stat-grid mt-16">
+        <div class="stat-card">
+          <div class="label">잔여횟수 합계</div>
+          <div class="value" id="detail-remaining">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">총 이용 횟수</div>
+          <div class="value" id="detail-used">-</div>
+        </div>
+      </div>
+
+      <h3>이용권 내역</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>등록일</th><th>총 횟수</th><th>잔여</th><th>상태</th><th class="owner-only"></th></tr></thead>
+          <tbody id="pass-rows"></tbody>
+        </table>
+      </div>
+
+      <div class="owner-only mt-16">
+        <h3>이용권 추가</h3>
+        <form id="new-pass-form" class="form-grid">
+          <div class="field"><label>총 횟수</label><input type="number" name="total_sessions" min="1" required></div>
+          <div class="field"><label>금액</label><input type="number" name="amount" min="0" required></div>
+          <div class="field">
+            <label>결제수단</label>
+            <select name="payment_method">
+              <option value="card">카드</option>
+              <option value="cash">현금</option>
+              <option value="transfer">계좌이체</option>
+              <option value="other">기타</option>
+            </select>
+          </div>
+          <div class="field" style="align-self:end;">
+            <button class="btn btn-primary" type="submit" style="width:100%">추가</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/members.js"></script>
+</body>
+</html>

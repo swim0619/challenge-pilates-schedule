@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>대시보드 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>대시보드</h1>
+      <span class="today" id="today-label"></span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">오늘 수업</div>
+        <div class="value" id="stat-classes">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">오늘 출석</div>
+        <div class="value" id="stat-attendance">-</div>
+      </div>
+      <div class="stat-card owner-only">
+        <div class="label">이번 달 매출</div>
+        <div class="value" id="stat-revenue">-</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="label">이번 주 진행 수업</div>
+        <div class="value" id="stat-week-done">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">이번 주 취소 수업</div>
+        <div class="value" id="stat-week-cancelled">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">이번 달 진행 수업</div>
+        <div class="value" id="stat-month-done">-</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>오늘 수업</h2>
+      <div id="today-classes"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

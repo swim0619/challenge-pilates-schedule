@@ -1,0 +1,10 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "챌린지필라테스관리",
+      "port": 8421,
+      "url": "http://localhost:8421"
+    }
+  ]
+}

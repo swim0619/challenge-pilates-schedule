@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>강사관리 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>강사관리</h1>
+    </div>
+
+    <div class="card">
+      <p style="color:var(--text-muted)">
+        새 강사는 Supabase 대시보드 (Authentication &gt; Users &gt; Invite user)에서 이메일로 먼저 초대해주세요.
+        초대받은 사람이 이 시스템에 처음 로그인하면 아래 목록에 강사로 자동 등록됩니다.
+      </p>
+      <div class="table-wrap mt-16">
+        <table>
+          <thead><tr><th>이름</th><th>전화번호</th><th>권한</th><th>가입일</th><th></th></tr></thead>
+          <tbody id="profile-rows"><tr><td colspan="5" class="empty-state">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/instructors.js"></script>
+</body>
+</html>

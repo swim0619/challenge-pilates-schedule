@@ -1,0 +1,427 @@
+let instructorOptions = [];
+let membersById = {};
+let allClasses = [];
+let attendanceByClassId = {};
+let currentView = 'week';
+let weekCursor = mondayOf(new Date());
+let monthCursor = new Date();
+monthCursor.setDate(1);
+
+document.addEventListener('DOMContentLoaded', async () => {
+  const auth = await guardPage();
+  if (!auth) return;
+
+  await Promise.all([loadInstructorOptions(), loadMemberOptions()]);
+  await loadSchedule();
+
+  const formWrap = document.getElementById('class-form-wrap');
+  const form = document.getElementById('class-form');
+
+  document.getElementById('new-class-btn').addEventListener('click', () => {
+    form.reset();
+    form.id.value = '';
+    form.class_date.value = todayStr();
+    document.getElementById('class-form-title').textContent = '새 수업 등록';
+    formWrap.classList.remove('hidden');
+  });
+
+  document.getElementById('cancel-class-form').addEventListener('click', () => {
+    formWrap.classList.add('hidden');
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const classDate = form.class_date.value;
+    const startTime = form.start_time.value.trim();
+    const memberId = form.member_id.value;
+    const member = membersById[memberId];
+
+    const payload = {
+      title: member ? member.name : '',
+      member_id: memberId,
+      class_date: classDate,
+      day_of_week: new Date(classDate + 'T00:00:00').getDay(),
+      start_time: startTime,
+      end_time: addMinutes(startTime, 60),
+      capacity: 1,
+      instructor_id: form.instructor_id.value || null,
+    };
+
+    const id = form.id.value;
+    const { error } = id
+      ? await sb.from('classes').update(payload).eq('id', id)
+      : await sb.from('classes').insert(payload);
+
+    if (error) {
+      alert('저장에 실패했습니다: ' + error.message);
+      return;
+    }
+
+    formWrap.classList.add('hidden');
+    await loadSchedule();
+  });
+
+  document.querySelectorAll('[data-view-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      currentView = btn.dataset.viewBtn;
+      document.querySelectorAll('[data-view-btn]').forEach((b) => b.classList.toggle('active', b === btn));
+      document.getElementById('week-nav').classList.toggle('hidden', currentView !== 'week');
+      document.getElementById('month-nav').classList.toggle('hidden', currentView !== 'month');
+      renderCurrentView();
+    });
+  });
+
+  document.getElementById('prev-week').addEventListener('click', () => {
+    weekCursor.setDate(weekCursor.getDate() - 7);
+    renderCurrentView();
+  });
+  document.getElementById('next-week').addEventListener('click', () => {
+    weekCursor.setDate(weekCursor.getDate() + 7);
+    renderCurrentView();
+  });
+  document.getElementById('prev-month').addEventListener('click', () => {
+    monthCursor.setMonth(monthCursor.getMonth() - 1);
+    renderCurrentView();
+  });
+  document.getElementById('next-month').addEventListener('click', () => {
+    monthCursor.setMonth(monthCursor.getMonth() + 1);
+    renderCurrentView();
+  });
+});
+
+function mondayOf(date) {
+  const d = new Date(date);
+  const day = d.getDay(); // 0=일 ... 6=토
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function toDateStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function addMinutes(timeStr, minutes) {
+  const [h, m] = timeStr.split(':').map(Number);
+  const total = (h * 60 + m + minutes) % (24 * 60);
+  const hh = String(Math.floor(total / 60)).padStart(2, '0');
+  const mm = String(total % 60).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
+async function loadInstructorOptions() {
+  const { data } = await sb.from('profiles').select('id, name, role').order('name');
+  instructorOptions = data || [];
+  const select = document.querySelector('select[name="instructor_id"]');
+  select.innerHTML =
+    '<option value="">미배정</option>' +
+    instructorOptions.map((p) => `<option value="${p.id}">${p.name} (${p.role === 'owner' ? '원장' : '강사'})</option>`).join('');
+}
+
+async function loadMemberOptions() {
+  const { data } = await sb
+    .from('members')
+    .select('id, name, status, created_at, session_passes(id, total_sessions, remaining_sessions, active, purchased_at)')
+    .order('name');
+
+  membersById = {};
+  (data || []).forEach((m) => {
+    const activePasses = (m.session_passes || [])
+      .filter((p) => p.active && p.remaining_sessions > 0)
+      .sort((a, b) => (a.purchased_at < b.purchased_at ? -1 : 1));
+    membersById[m.id] = { name: m.name, status: m.status, created_at: m.created_at, activePasses };
+  });
+
+  const select = document.querySelector('select[name="member_id"]');
+  select.innerHTML =
+    '<option value="">회원을 선택하세요</option>' +
+    (data || []).map((m) => `<option value="${m.id}">${m.name}</option>`).join('');
+}
+
+async function loadSchedule() {
+  const { data, error } = await sb
+    .from('classes')
+    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, instructor:profiles(id, name)')
+    .eq('active', true)
+    .order('class_date')
+    .order('start_time');
+
+  if (error) {
+    document.getElementById('schedule-body').innerHTML = `<p class="empty-state">불러오기 실패: ${error.message}</p>`;
+    return;
+  }
+
+  allClasses = data || [];
+
+  attendanceByClassId = {};
+  if (allClasses.length > 0) {
+    const { data: attendanceRows } = await sb
+      .from('attendance')
+      .select('id, class_id, pass_id')
+      .in('class_id', allClasses.map((c) => c.id));
+    (attendanceRows || []).forEach((a) => { attendanceByClassId[a.class_id] = a; });
+  }
+
+  renderCurrentView();
+}
+
+function renderCurrentView() {
+  if (currentView === 'month') {
+    renderMonthView();
+  } else {
+    renderWeekView();
+  }
+}
+
+function memberStatusBadgeHtml(member) {
+  if (member.status === 'withdrawn') {
+    return '<span class="badge badge-muted" style="margin-left:6px;">탈퇴</span>';
+  }
+  if (member.status === 'trial') {
+    return '<span class="badge badge-info" style="margin-left:6px;">체험수업</span>';
+  }
+  return '';
+}
+
+function classCardHtml(c) {
+  const attendance = attendanceByClassId[c.id];
+  const checkedIn = !!attendance;
+  const member = c.member_id ? membersById[c.member_id] : null;
+  const hasPass = member && member.activePasses.length > 0;
+
+  let attendanceBtn = '';
+  if (c.cancelled) {
+    attendanceBtn = `<span class="badge badge-muted">취소됨</span>`;
+  } else if (c.member_id) {
+    const disabled = !checkedIn && !hasPass;
+    attendanceBtn = `
+      <label class="attend-check ${disabled ? 'disabled' : ''}">
+        <input type="checkbox" data-attend-toggle="${c.id}" ${checkedIn ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
+        <span>${disabled ? '잔여 없음' : '출석'}</span>
+      </label>
+    `;
+  }
+
+  const primaryPass = member && member.activePasses[0];
+  const sessionNum = primaryPass ? primaryPass.total_sessions - primaryPass.remaining_sessions : null;
+  const remainingBadge = primaryPass
+    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="margin-left:6px;">${sessionNum}/${primaryPass.total_sessions}회차</span>`
+    : '';
+  const statusBadge = member ? memberStatusBadgeHtml(member) : '';
+
+  return `
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${c.cancelled ? 'cancelled' : ''}">
+      <div class="card-menu owner-only">
+        <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
+        <div class="card-menu-dropdown hidden" data-menu="${c.id}">
+          <button data-edit="${c.id}" type="button">수정</button>
+          <button data-cancel-toggle="${c.id}" data-cancelled="${c.cancelled}" type="button">${c.cancelled ? '취소 해제' : '취소'}</button>
+          <button data-deactivate="${c.id}" type="button">삭제</button>
+        </div>
+      </div>
+      <span class="time">${formatTime(c.start_time)}</span>
+      <span class="title">${c.title}</span>
+      <span class="remaining" style="font-size:.78rem;">${c.instructor ? c.instructor.name : '미배정'}${statusBadge}${remainingBadge}</span>
+      <div class="actions">
+        ${attendanceBtn}
+      </div>
+    </div>
+  `;
+}
+
+function renderWeekView() {
+  const bodyEl = document.getElementById('schedule-body');
+
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(weekCursor);
+    d.setDate(weekCursor.getDate() + i);
+    days.push(d);
+  }
+
+  const weekEnd = days[6];
+  document.getElementById('week-label').textContent =
+    `${weekCursor.getMonth() + 1}/${weekCursor.getDate()} - ${weekEnd.getMonth() + 1}/${weekEnd.getDate()}`;
+
+  bodyEl.innerHTML = `
+    <div class="week-grid-wrap">
+      <div class="week-grid">
+        ${days.map((d) => {
+          const dateStr = toDateStr(d);
+          const dayClasses = allClasses.filter((c) => c.class_date === dateStr);
+          const isToday = dateStr === todayStr();
+          return `
+            <div class="week-col">
+              <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' · 오늘' : ''}</h4>
+              ${dayClasses.length === 0
+                ? '<p class="empty-state" style="padding:16px 0;">-</p>'
+                : dayClasses.map(classCardHtml).join('')}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div>
+  `;
+
+  bindScheduleActions();
+}
+
+function renderMonthView() {
+  const bodyEl = document.getElementById('schedule-body');
+  const year = monthCursor.getFullYear();
+  const month = monthCursor.getMonth();
+
+  document.getElementById('month-label').textContent = `${year}년 ${month + 1}월`;
+
+  const firstOfMonth = new Date(year, month, 1);
+  const startOffset = firstOfMonth.getDay();
+  const gridStart = new Date(year, month, 1 - startOffset);
+
+  const cells = [];
+  for (let i = 0; i < 42; i++) {
+    const cellDate = new Date(gridStart);
+    cellDate.setDate(gridStart.getDate() + i);
+    cells.push(cellDate);
+  }
+
+  bodyEl.innerHTML = `
+    <div class="month-grid">
+      ${DAY_LABELS.map((l) => `<div class="month-daylabel">${l}</div>`).join('')}
+      ${cells.map((cellDate) => {
+        const isOtherMonth = cellDate.getMonth() !== month;
+        const dateStr = toDateStr(cellDate);
+        const dayClasses = allClasses.filter((c) => c.class_date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time));
+        return `
+          <div class="month-cell ${isOtherMonth ? 'other-month' : ''}">
+            <div class="date-num">${cellDate.getDate()}</div>
+            ${dayClasses.map((c) => `
+              <span class="class-pill ${attendanceByClassId[c.id] ? 'checked-in' : ''} ${c.cancelled ? 'cancelled' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
+            `).join('')}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  bindScheduleActions();
+}
+
+function bindScheduleActions() {
+  document.querySelectorAll('[data-edit]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeAllMenus();
+      openEdit(btn.dataset.edit, allClasses);
+    });
+  });
+  document.querySelectorAll('[data-deactivate]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeAllMenus();
+      deactivateClass(btn.dataset.deactivate);
+    });
+  });
+  document.querySelectorAll('[data-cancel-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeAllMenus();
+      toggleCancelClass(btn.dataset.cancelToggle, btn.dataset.cancelled === 'true');
+    });
+  });
+  document.querySelectorAll('[data-attend-toggle]').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      const classId = checkbox.dataset.attendToggle;
+      if (checkbox.checked) {
+        checkInClass(classId);
+      } else {
+        const attendance = attendanceByClassId[classId];
+        if (attendance) cancelAttendance(attendance.id);
+      }
+    });
+  });
+  document.querySelectorAll('[data-menu-toggle]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const dropdown = document.querySelector(`[data-menu="${btn.dataset.menuToggle}"]`);
+      const isOpen = !dropdown.classList.contains('hidden');
+      closeAllMenus();
+      if (!isOpen) dropdown.classList.remove('hidden');
+    });
+  });
+}
+
+function closeAllMenus() {
+  document.querySelectorAll('.card-menu-dropdown').forEach((el) => el.classList.add('hidden'));
+}
+
+document.addEventListener('click', closeAllMenus);
+
+async function checkInClass(classId) {
+  const c = allClasses.find((x) => x.id === classId);
+  if (!c || !c.member_id) return;
+  const member = membersById[c.member_id];
+  const pass = member && member.activePasses[0];
+
+  if (!pass) {
+    alert('사용 가능한 이용권이 없습니다.');
+    return;
+  }
+
+  const { error } = await sb.from('attendance').insert({
+    class_id: classId,
+    member_id: c.member_id,
+    pass_id: pass.id,
+    session_date: c.class_date,
+  });
+
+  if (error) {
+    alert('출석체크에 실패했습니다: ' + error.message);
+    return;
+  }
+
+  await Promise.all([loadMemberOptions(), loadSchedule()]);
+}
+
+async function cancelAttendance(attendanceId) {
+  const { error } = await sb.from('attendance').delete().eq('id', attendanceId);
+  if (error) {
+    alert('출석 취소에 실패했습니다: ' + error.message);
+    return;
+  }
+  await Promise.all([loadMemberOptions(), loadSchedule()]);
+}
+
+function openEdit(id, classes) {
+  const c = classes.find((x) => x.id === id);
+  if (!c) return;
+
+  const form = document.getElementById('class-form');
+  form.id.value = c.id;
+  form.member_id.value = c.member_id || '';
+  form.class_date.value = c.class_date;
+  form.start_time.value = c.start_time.slice(0, 5);
+  form.instructor_id.value = c.instructor ? c.instructor.id : '';
+
+  document.getElementById('class-form-title').textContent = '수업 수정';
+  document.getElementById('class-form-wrap').classList.remove('hidden');
+}
+
+async function deactivateClass(id) {
+  if (!confirm('이 수업을 삭제할까요? 시간표에서 완전히 사라집니다. (출석 기록은 유지됩니다)')) return;
+  const { error } = await sb.from('classes').update({ active: false }).eq('id', id);
+  if (error) {
+    alert('처리에 실패했습니다: ' + error.message);
+    return;
+  }
+  await loadSchedule();
+}
+
+async function toggleCancelClass(id, currentlyCancelled) {
+  const { error } = await sb.from('classes').update({ cancelled: !currentlyCancelled }).eq('id', id);
+  if (error) {
+    alert('처리에 실패했습니다: ' + error.message);
+    return;
+  }
+  await loadSchedule();
+}

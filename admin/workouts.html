@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>운동일지 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="admin-shell">
+  <aside class="admin-sidebar">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <nav class="admin-nav">
+      <a href="index.html">대시보드</a>
+      <a href="todos.html">할일</a>
+      <a href="schedule.html">시간표</a>
+      <a href="members.html">회원관리</a>
+      <a href="workouts.html">운동일지</a>
+      <a href="revenue.html" class="owner-only">매출관리</a>
+      <a href="instructors.html" class="owner-only">강사관리</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="who" data-who>-</div>
+      <span class="role-badge" data-role-badge>-</span>
+      <button class="btn btn-outline btn-sm" data-logout>로그아웃</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <h1>운동일지</h1>
+    </div>
+
+    <div class="card">
+      <div class="field" style="max-width:320px;">
+        <label>회원 선택</label>
+        <select id="member-select"><option value="">회원을 선택하세요</option></select>
+      </div>
+    </div>
+
+    <div class="card mt-16 hidden" id="log-card">
+      <h2 id="log-member-name">-</h2>
+
+      <form id="log-form" class="form-grid">
+        <div class="field"><label>날짜</label><input type="date" name="log_date" required></div>
+        <div class="field">
+          <label>통증 레벨</label>
+          <select name="pain_level">
+            <option value="">체크 안 함</option>
+            <option value="0">0 - 없음</option>
+            <option value="1">1 - 아주 약함</option>
+            <option value="2">2 - 약함</option>
+            <option value="3">3 - 보통</option>
+            <option value="4">4 - 심함</option>
+            <option value="5">5 - 매우 심함</option>
+          </select>
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>오늘 한 운동</label>
+          <div style="display:flex; gap:6px; margin-bottom:6px; flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" type="button" id="mark-highlight-yellow">🖍 형광펜(노랑)</button>
+            <button class="btn btn-outline btn-sm" type="button" id="mark-highlight-pink">🖍 형광펜(핑크)</button>
+            <button class="btn btn-outline btn-sm" type="button" id="mark-highlight-purple">🖍 형광펜(보라)</button>
+            <button class="btn btn-outline btn-sm" type="button" id="mark-underline">_ 밑줄</button>
+          </div>
+          <p style="color:var(--text-muted); font-size:.8rem; margin:0 0 6px;">내용을 먼저 쓰고, 강조할 부분을 드래그해서 선택한 뒤 버튼을 눌러주세요</p>
+          <textarea name="content" rows="3" placeholder="예: 플랭크 1분, 스쿼트 20개, 폼롤러 스트레칭" required style="width:100%; padding:.7em .9em; border:1.5px solid var(--border); border-radius:10px; font-family:inherit; resize:vertical;"></textarea>
+        </div>
+        <div class="field" style="align-self:end;">
+          <button class="btn btn-primary" type="submit">기록 추가</button>
+        </div>
+      </form>
+
+      <h3 class="mt-16">기록 내역</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>날짜</th><th>통증</th><th>내용</th><th></th></tr></thead>
+          <tbody id="log-rows"><tr><td colspan="4" class="empty-state">회원을 선택해주세요.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/workouts.js"></script>
+</body>
+</html>

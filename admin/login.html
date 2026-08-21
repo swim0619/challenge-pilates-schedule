@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>로그인 | 챌린지필라테스 관리</title>
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<div class="login-shell">
+  <div class="login-card">
+    <div class="logo">챌린지<span>필라테스</span></div>
+    <p class="subtitle">센터 관리 시스템</p>
+
+    <form id="login-form">
+      <div class="field hidden" id="name-field">
+        <label for="name">표시할 이름</label>
+        <input type="text" id="name" name="name" placeholder="예: 김원장">
+      </div>
+      <div class="field">
+        <label for="email">이메일</label>
+        <input type="email" id="email" name="email" required autocomplete="username">
+      </div>
+      <div class="field">
+        <label for="password">비밀번호</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
+      </div>
+      <div class="field-error" id="login-error"></div>
+      <button type="submit" class="btn btn-primary" style="width:100%" id="login-submit">로그인</button>
+      <p style="text-align:center; margin-top:1em; font-size:.9rem;">
+        <a href="#" id="mode-toggle" style="color:var(--cyan-dark); font-weight:600;">처음이신가요? 회원가입</a>
+      </p>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/supabaseClient.js"></script>
+<script>
+  const form = document.getElementById('login-form');
+  const errorEl = document.getElementById('login-error');
+  const submitBtn = document.getElementById('login-submit');
+  const modeToggle = document.getElementById('mode-toggle');
+  const nameField = document.getElementById('name-field');
+  let mode = 'signin'; // 'signin' | 'signup'
+
+  modeToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    mode = mode === 'signin' ? 'signup' : 'signin';
+    submitBtn.textContent = mode === 'signin' ? '로그인' : '회원가입';
+    modeToggle.textContent = mode === 'signin' ? '처음이신가요? 회원가입' : '이미 계정이 있으신가요? 로그인';
+    nameField.classList.toggle('hidden', mode !== 'signup');
+    errorEl.textContent = '';
+  });
+
+  // 이미 로그인되어 있으면 바로 대시보드로
+  (async () => {
+    if (!window.sb) return;
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) location.href = 'index.html';
+  })();
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    errorEl.textContent = '';
+    submitBtn.disabled = true;
+
+    const email = form.email.value.trim();
+    const password = form.password.value;
+
+    if (mode === 'signup') {
+      const { data, error } = await sb.auth.signUp({ email, password });
+
+      if (error) {
+        errorEl.textContent = '회원가입 실패: ' + error.message;
+        submitBtn.disabled = false;
+        return;
+      }
+
+      if (!data.session) {
+        errorEl.style.color = '';
+        errorEl.textContent = '가입 확인 이메일을 보냈어요. 메일함에서 확인 링크를 눌러주세요.';
+        submitBtn.disabled = false;
+        return;
+      }
+
+      const name = form.name.value.trim() || email.split('@')[0];
+      await sb.from('profiles').insert({ id: data.user.id, name, role: 'instructor' });
+      location.href = 'index.html';
+      return;
+    }
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      errorEl.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+      submitBtn.disabled = false;
+      return;
+    }
+
+    // 첫 로그인이라 profiles 행이 없으면 강사 권한으로 자동 생성
+    // (원장 승격은 schema.sql 안내에 따라 SQL Editor에서 1회만 수동 처리)
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('id')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      await sb.from('profiles').insert({ id: data.user.id, name: email.split('@')[0], role: 'instructor' });
+    }
+
+    location.href = 'index.html';
+  });
+</script>
+</body>
+</html>
