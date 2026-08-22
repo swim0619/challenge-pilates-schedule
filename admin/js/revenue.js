@@ -5,10 +5,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage({ ownerOnly: true });
   if (!auth) return;
 
-  const monthStart = todayStr().slice(0, 7) + '-01';
-  document.getElementById('from-date').value = monthStart;
-  document.getElementById('to-date').value = todayStr();
-
   document.getElementById('filter-btn').addEventListener('click', loadPayments);
 
   await Promise.all([loadPayments(), loadMemberOptions()]);
@@ -61,8 +57,6 @@ async function loadMemberOptions() {
 }
 
 async function loadPayments() {
-  const from = document.getElementById('from-date').value;
-  const to = document.getElementById('to-date').value;
   const method = document.getElementById('method-filter').value;
   const tbody = document.getElementById('payment-rows');
 
@@ -71,8 +65,6 @@ async function loadPayments() {
     .select('id, member_id, amount, payment_method, paid_at, member:members(name), pass:session_passes(total_sessions)')
     .order('paid_at', { ascending: false });
 
-  if (from) query = query.gte('paid_at', from);
-  if (to) query = query.lte('paid_at', to);
   if (method) query = query.eq('payment_method', method);
 
   const { data, error } = await query;
@@ -89,7 +81,7 @@ async function loadPayments() {
   document.getElementById('total-count').textContent = currentPayments.length + '건';
 
   if (currentPayments.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">해당 기간 결제 내역이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state">결제 내역이 없습니다.</td></tr>';
     return;
   }
 
