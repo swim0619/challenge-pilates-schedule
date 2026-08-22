@@ -18,11 +18,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('class-form');
 
   document.getElementById('new-class-btn').addEventListener('click', () => {
-    form.reset();
-    form.id.value = '';
-    form.class_date.value = todayStr();
-    document.getElementById('class-form-title').textContent = '새 수업 등록';
-    formWrap.classList.remove('hidden');
+    openNewClassForm(todayStr());
   });
 
   document.getElementById('cancel-class-form').addEventListener('click', () => {
@@ -255,7 +251,7 @@ function renderWeekView() {
           const dayClasses = allClasses.filter((c) => c.class_date === dateStr);
           const isToday = dateStr === todayStr();
           return `
-            <div class="week-col">
+            <div class="week-col" data-date-cell="${dateStr}">
               <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' · 오늘' : ''}</h4>
               ${dayClasses.length === 0
                 ? '<p class="empty-state" style="padding:16px 0;">-</p>'
@@ -278,7 +274,7 @@ function renderMonthView() {
   document.getElementById('month-label').textContent = `${year}년 ${month + 1}월`;
 
   const firstOfMonth = new Date(year, month, 1);
-  const startOffset = firstOfMonth.getDay();
+  const startOffset = (firstOfMonth.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - startOffset);
 
   const cells = [];
@@ -288,15 +284,17 @@ function renderMonthView() {
     cells.push(cellDate);
   }
 
+  const mondayFirstLabels = [...DAY_LABELS.slice(1), DAY_LABELS[0]];
+
   bodyEl.innerHTML = `
     <div class="month-grid">
-      ${DAY_LABELS.map((l) => `<div class="month-daylabel">${l}</div>`).join('')}
+      ${mondayFirstLabels.map((l) => `<div class="month-daylabel">${l}</div>`).join('')}
       ${cells.map((cellDate) => {
         const isOtherMonth = cellDate.getMonth() !== month;
         const dateStr = toDateStr(cellDate);
         const dayClasses = allClasses.filter((c) => c.class_date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time));
         return `
-          <div class="month-cell ${isOtherMonth ? 'other-month' : ''}">
+          <div class="month-cell ${isOtherMonth ? 'other-month' : ''}" data-date-cell="${dateStr}">
             <div class="date-num">${cellDate.getDate()}</div>
             ${dayClasses.map((c) => `
               <span class="class-pill ${attendanceByClassId[c.id] ? 'checked-in' : ''} ${c.cancelled ? 'cancelled' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
@@ -311,6 +309,12 @@ function renderMonthView() {
 }
 
 function bindScheduleActions() {
+  document.querySelectorAll('[data-date-cell]').forEach((cell) => {
+    cell.addEventListener('click', (e) => {
+      if (e.target.closest('.week-class') || e.target.closest('.class-pill')) return;
+      openNewClassForm(cell.dataset.dateCell);
+    });
+  });
   document.querySelectorAll('[data-edit]').forEach((btn) => {
     btn.addEventListener('click', () => {
       closeAllMenus();
@@ -390,6 +394,23 @@ async function cancelAttendance(attendanceId) {
     return;
   }
   await Promise.all([loadMemberOptions(), loadSchedule()]);
+}
+
+function openNewClassForm(dateStr) {
+  const formWrap = document.getElementById('class-form-wrap');
+  const form = document.getElementById('class-form');
+
+  if (formWrap.classList.contains('hidden')) {
+    form.reset();
+    form.id.value = '';
+    form.class_date.value = dateStr;
+    document.getElementById('class-form-title').textContent = '새 수업 등록';
+    formWrap.classList.remove('hidden');
+  } else {
+    form.class_date.value = dateStr;
+  }
+
+  formWrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function openEdit(id, classes) {

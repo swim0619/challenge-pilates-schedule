@@ -9,7 +9,7 @@
   --cyan: #d63a2f;
   --cyan-dark: #b32e25;
   --bg: #ffffff;
-  --bg-alt: #f5f2f1;
+  --bg-alt: #f7f7f7;
   --text: #1a1a1a;
   --text-muted: #6b6b6b;
   --white: #ffffff;
@@ -21,10 +21,10 @@
   --danger-bg: #f5e0de;
   --warning: #b8790a;
   --warning-bg: #fdf3e0;
-  --success: #1f9d63;
-  --success-bg: #e7f8ef;
-  --checkin: #e0668f;
-  --checkin-bg: #fbe6ee;
+  --success: #c2477a;
+  --success-bg: #fdeaf2;
+  --checkin: #f2c94c;
+  --checkin-bg: #fdf6d9;
 }
 
 * { box-sizing: border-box; }
@@ -288,7 +288,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 /* ===== Week grid ===== */
 .week-grid-wrap { overflow-x: auto; }
 .week-grid { display: grid; grid-template-columns: repeat(7, minmax(140px, 1fr)); gap: 10px; }
-.week-col { background: var(--bg-alt); border-radius: var(--radius); padding: 12px; min-height: 100px; }
+.week-col { background: var(--bg-alt); border-radius: var(--radius); padding: 12px; min-height: 100px; cursor: pointer; }
 .week-col h4 { margin: 0 0 10px; font-size: .9rem; color: var(--text-muted); text-align: center; }
 .week-class { position: relative; background: var(--white); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
 .card-menu { position: absolute; top: 6px; right: 6px; }
@@ -363,7 +363,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .attend-check input[type="checkbox"] {
   width: 18px;
   height: 18px;
-  accent-color: var(--checkin);
+  accent-color: var(--white);
   cursor: pointer;
 }
 .attend-check.disabled { color: var(--text-muted); cursor: not-allowed; }
@@ -372,7 +372,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 /* ===== Month grid ===== */
 .month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
 .month-daylabel { text-align: center; font-size: .8rem; color: var(--text-muted); font-weight: 700; padding-bottom: 6px; }
-.month-cell { background: var(--bg-alt); border-radius: 10px; min-height: 92px; padding: 6px; }
+.month-cell { background: var(--bg-alt); border-radius: 10px; min-height: 92px; padding: 6px; cursor: pointer; }
 .month-cell.other-month { opacity: .4; }
 .month-cell .date-num { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
 .class-pill {
@@ -388,7 +388,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
   text-overflow: ellipsis;
   cursor: pointer;
 }
-.class-pill.checked-in { background: var(--checkin); color: var(--white); }
+.class-pill.checked-in { background: var(--checkin-bg); color: var(--navy-dark); }
 .class-pill.cancelled { text-decoration: line-through; opacity: .5; }
 
 /* ===== Utility ===== */

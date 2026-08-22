@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('new-payment-btn').addEventListener('click', () => {
     form.reset();
     form.id.value = '';
+    form.pass_id.value = '';
+    form.total_sessions.disabled = false;
     form.paid_at.value = todayStr();
     document.getElementById('payment-form-title').textContent = '매출 입력';
     formWrap.classList.remove('hidden');
@@ -26,11 +28,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    let passId = form.pass_id.value || null;
+    const totalSessions = form.total_sessions.value ? Number(form.total_sessions.value) : null;
+
+    if (totalSessions && !passId) {
+      const { data: pass, error: passError } = await sb
+        .from('session_passes')
+        .insert({
+          member_id: form.member_id.value,
+          total_sessions: totalSessions,
+          remaining_sessions: totalSessions,
+        })
+        .select()
+        .single();
+
+      if (passError) {
+        alert('이용권 등록에 실패했습니다: ' + passError.message);
+        return;
+      }
+      passId = pass.id;
+    }
+
     const payload = {
       member_id: form.member_id.value,
       amount: Number(form.amount.value),
       payment_method: form.payment_method.value,
       paid_at: form.paid_at.value,
+      pass_id: passId,
     };
 
     const id = form.id.value;
@@ -62,7 +87,7 @@ async function loadPayments() {
 
   let query = sb
     .from('payments')
-    .select('id, member_id, amount, payment_method, paid_at, member:members(name), pass:session_passes(total_sessions)')
+    .select('id, member_id, pass_id, amount, payment_method, paid_at, member:members(name), pass:session_passes(total_sessions)')
     .order('paid_at', { ascending: false });
 
   if (method) query = query.eq('payment_method', method);
@@ -117,6 +142,9 @@ function openEditPayment(id) {
   form.amount.value = p.amount;
   form.payment_method.value = p.payment_method;
   form.paid_at.value = p.paid_at;
+  form.pass_id.value = p.pass_id || '';
+  form.total_sessions.value = p.pass ? p.pass.total_sessions : '';
+  form.total_sessions.disabled = !!p.pass_id;
 
   document.getElementById('payment-form-title').textContent = '매출 수정';
   document.getElementById('payment-form-wrap').classList.remove('hidden');
