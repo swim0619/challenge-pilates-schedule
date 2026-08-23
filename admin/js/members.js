@@ -1,5 +1,7 @@
 let currentMemberId = null;
 let currentMemberData = null;
+let currentPasses = [];
+let editingPassId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
@@ -52,6 +54,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('detail-card').classList.add('hidden');
   });
 
+  document.getElementById('withdraw-member-btn').addEventListener('click', async () => {
+    if (!currentMemberId || !currentMemberData) return;
+    if (!confirm(`${currentMemberData.name} 회원을 탈퇴 처리할까요?`)) return;
+    const { error } = await sb.from('members').update({ status: 'withdrawn' }).eq('id', currentMemberId);
+    if (error) {
+      alert('탈퇴 처리에 실패했습니다: ' + error.message);
+      return;
+    }
+    await selectMember(currentMemberId);
+    await loadMembers(document.getElementById('search-input').value.trim());
+  });
+
+  document.getElementById('delete-member-btn').addEventListener('click', async () => {
+    if (!currentMemberId || !currentMemberData) return;
+    if (!confirm(`${currentMemberData.name} 회원을 완전히 삭제할까요?\n이용권/결제/출석 기록이 모두 함께 삭제되며 되돌릴 수 없습니다.`)) return;
+    const { error } = await sb.from('members').delete().eq('id', currentMemberId);
+    if (error) {
+      alert('삭제에 실패했습니다: ' + error.message);
+      return;
+    }
+    currentMemberId = null;
+    currentMemberData = null;
+    document.getElementById('detail-card').classList.add('hidden');
+    await loadMembers(document.getElementById('search-input').value.trim());
+  });
+
   const editFormWrap = document.getElementById('edit-member-form-wrap');
   const editForm = document.getElementById('edit-member-form');
 
@@ -95,6 +123,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const totalSessions = Number(form.total_sessions.value);
     const amount = Number(form.amount.value);
     const paymentMethod = form.payment_method.value;
+    const purchasedAt = form.purchased_at.value || undefined;
 
     const { data: pass, error: passError } = await sb
       .from('session_passes')
@@ -102,6 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         member_id: currentMemberId,
         total_sessions: totalSessions,
         remaining_sessions: totalSessions,
+        ...(purchasedAt ? { purchased_at: purchasedAt } : {}),
       })
       .select()
       .single();
@@ -116,6 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pass_id: pass.id,
       amount,
       payment_method: paymentMethod,
+      ...(purchasedAt ? { paid_at: purchasedAt } : {}),
     });
 
     if (paymentError) {
@@ -213,28 +244,99 @@ async function selectMember(memberId) {
   document.getElementById('detail-remaining').textContent = remaining + '회';
   document.getElementById('detail-used').textContent = (usedCount || 0) + '회';
 
+  currentPasses = passes || [];
+  editingPassId = null;
+  renderPassRows();
+
+  const detailCard = document.getElementById('detail-card');
+  detailCard.classList.remove('hidden');
+  detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderPassRows() {
   const passRows = document.getElementById('pass-rows');
-  if (!passes || passes.length === 0) {
+  if (!currentPasses || currentPasses.length === 0) {
     passRows.innerHTML = '<tr><td colspan="4" class="empty-state">등록된 이용권이 없습니다.</td></tr>';
-  } else {
-    passRows.innerHTML = passes.map((p) => `
+    return;
+  }
+
+  passRows.innerHTML = currentPasses.map((p) => {
+    if (p.id === editingPassId) {
+      return `
+        <tr>
+          <td><input type="date" data-edit-field="purchased_at" value="${p.purchased_at}" style="width:140px;"></td>
+          <td><input type="number" min="1" data-edit-field="total_sessions" value="${p.total_sessions}" style="width:70px;"></td>
+          <td><input type="number" min="0" data-edit-field="remaining_sessions" value="${p.remaining_sessions}" style="width:70px;"></td>
+          <td><span class="badge ${p.remaining_sessions > 0 ? 'badge-success' : 'badge-muted'}">${p.remaining_sessions > 0 ? '사용중' : '소진'}</span></td>
+          <td class="owner-only" style="display:flex; gap:6px;">
+            <button class="btn btn-primary btn-sm" data-save-pass="${p.id}" type="button">저장</button>
+            <button class="btn btn-outline btn-sm" data-cancel-edit-pass type="button">취소</button>
+          </td>
+        </tr>
+      `;
+    }
+    return `
       <tr>
         <td>${p.purchased_at}</td>
         <td>${p.total_sessions}회</td>
         <td>${p.remaining_sessions}회</td>
         <td><span class="badge ${p.remaining_sessions > 0 ? 'badge-success' : 'badge-muted'}">${p.remaining_sessions > 0 ? '사용중' : '소진'}</span></td>
-        <td class="owner-only"><button class="btn btn-danger btn-sm" data-delete-pass="${p.id}" type="button">삭제</button></td>
+        <td class="owner-only" style="display:flex; gap:6px;">
+          <button class="btn btn-outline btn-sm" data-edit-pass="${p.id}" type="button">수정</button>
+          <button class="btn btn-danger btn-sm" data-delete-pass="${p.id}" type="button">삭제</button>
+        </td>
       </tr>
-    `).join('');
+    `;
+  }).join('');
 
-    passRows.querySelectorAll('[data-delete-pass]').forEach((btn) => {
-      btn.addEventListener('click', () => deletePass(btn.dataset.deletePass));
+  passRows.querySelectorAll('[data-edit-pass]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingPassId = btn.dataset.editPass;
+      renderPassRows();
     });
+  });
+  passRows.querySelectorAll('[data-cancel-edit-pass]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingPassId = null;
+      renderPassRows();
+    });
+  });
+  passRows.querySelectorAll('[data-save-pass]').forEach((btn) => {
+    btn.addEventListener('click', () => savePass(btn.dataset.savePass));
+  });
+  passRows.querySelectorAll('[data-delete-pass]').forEach((btn) => {
+    btn.addEventListener('click', () => deletePass(btn.dataset.deletePass));
+  });
+}
+
+async function savePass(passId) {
+  const row = document.querySelector(`[data-save-pass="${passId}"]`).closest('tr');
+  const totalSessions = Number(row.querySelector('[data-edit-field="total_sessions"]').value);
+  const remainingSessions = Number(row.querySelector('[data-edit-field="remaining_sessions"]').value);
+  const purchasedAt = row.querySelector('[data-edit-field="purchased_at"]').value;
+
+  if (!totalSessions || totalSessions < 1) {
+    alert('총 횟수를 확인해주세요.');
+    return;
+  }
+  if (remainingSessions < 0 || remainingSessions > totalSessions) {
+    alert('잔여 횟수는 0 이상, 총 횟수 이하여야 합니다.');
+    return;
   }
 
-  const detailCard = document.getElementById('detail-card');
-  detailCard.classList.remove('hidden');
-  detailCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const { error } = await sb.from('session_passes').update({
+    total_sessions: totalSessions,
+    remaining_sessions: remainingSessions,
+    ...(purchasedAt ? { purchased_at: purchasedAt } : {}),
+  }).eq('id', passId);
+
+  if (error) {
+    alert('이용권 수정에 실패했습니다: ' + error.message);
+    return;
+  }
+
+  editingPassId = null;
+  await selectMember(currentMemberId);
 }
 
 async function deletePass(passId) {

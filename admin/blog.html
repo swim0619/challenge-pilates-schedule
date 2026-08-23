@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>할일 | 챌린지필라테스 관리</title>
+<title>블로그 | 챌린지필라테스 관리</title>
 <link rel="stylesheet" href="css/admin.css">
 </head>
 <body>
@@ -30,24 +30,26 @@
 
   <main class="admin-main">
     <div class="admin-topbar">
-      <h1>오늘 할일</h1>
-      <span class="today" id="today-label"></span>
+      <h1>블로그 초안</h1>
+      <span style="color:var(--text-muted); font-size:.85rem;">자동 생성된 초안을 검토·수정한 뒤 네이버 블로그에 직접 게시하세요</span>
     </div>
 
-    <div class="card">
-      <form id="todo-form" style="display:flex; gap:8px;">
-        <input name="content" placeholder="할일을 입력하세요" required style="flex:1; padding:.7em .9em; border:1.5px solid var(--border); border-radius:10px;">
-        <button class="btn btn-primary" type="submit">추가</button>
-      </form>
-
-      <div id="todo-list" class="mt-16"></div>
+    <div class="card" style="display:flex; gap:8px; align-items:center;">
+      <label style="font-size:.9rem; color:var(--text-muted);">상태 필터</label>
+      <select id="status-filter" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+        <option value="">전체</option>
+        <option value="draft" selected>초안</option>
+        <option value="published">게시완료</option>
+      </select>
     </div>
+
+    <div id="draft-list" class="mt-16"></div>
   </main>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="js/supabaseClient.js"></script>
 <script src="js/auth.js"></script>
-<script src="js/todos.js"></script>
+<script src="js/blog.js"></script>
 </body>
 </html>

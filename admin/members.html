@@ -17,6 +17,7 @@
       <a href="schedule.html">시간표</a>
       <a href="members.html">회원관리</a>
       <a href="workouts.html">운동일지</a>
+      <a href="blog.html">블로그</a>
       <a href="revenue.html" class="owner-only">매출관리</a>
       <a href="instructors.html" class="owner-only">강사관리</a>
     </nav>
@@ -83,6 +84,8 @@
             <option value="withdrawn">탈퇴</option>
           </select>
           <button class="btn btn-outline btn-sm owner-only" id="edit-member-btn" type="button">회원정보 수정</button>
+          <button class="btn btn-outline btn-sm owner-only" id="withdraw-member-btn" type="button">탈퇴 처리</button>
+          <button class="btn btn-danger btn-sm owner-only" id="delete-member-btn" type="button">회원 삭제</button>
           <button class="btn btn-outline btn-sm" id="close-detail" type="button">닫기</button>
         </div>
       </div>
@@ -124,6 +127,7 @@
         <form id="new-pass-form" class="form-grid">
           <div class="field"><label>총 횟수</label><input type="number" name="total_sessions" min="1" required></div>
           <div class="field"><label>금액</label><input type="number" name="amount" min="0" required></div>
+          <div class="field"><label>구입일</label><input type="date" name="purchased_at"></div>
           <div class="field">
             <label>결제수단</label>
             <select name="payment_method">

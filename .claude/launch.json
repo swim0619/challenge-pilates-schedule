@@ -3,6 +3,8 @@
   "configurations": [
     {
       "name": "챌린지필라테스관리",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "8421"],
       "port": 8421,
       "url": "http://localhost:8421"
     }
