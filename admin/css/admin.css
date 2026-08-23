@@ -25,6 +25,8 @@
   --success-bg: #fdeaf2;
   --checkin: #f2c94c;
   --checkin-bg: #fdf6d9;
+  --personal-done: #4caf7d;
+  --personal-done-bg: #e3f5ea;
 }
 
 * { box-sizing: border-box; }
@@ -346,6 +348,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .todo-row [data-todo-delete] { flex-shrink: 0; }
 
 .week-class.checked-in { background: var(--checkin-bg); }
+.week-class.personal-done { background: var(--personal-done-bg); }
 .week-class.cancelled { background: var(--bg-alt); opacity: .6; }
 .week-class.cancelled .title { text-decoration: line-through; }
 .week-class .time { font-weight: 700; color: var(--navy-dark); display: block; font-size: .85rem; }
@@ -389,6 +392,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
   cursor: pointer;
 }
 .class-pill.checked-in { background: var(--checkin-bg); color: var(--navy-dark); }
+.class-pill.personal-done { background: var(--personal-done-bg); color: var(--navy-dark); }
 .class-pill.cancelled { text-decoration: line-through; opacity: .5; }
 
 /* ===== Utility ===== */

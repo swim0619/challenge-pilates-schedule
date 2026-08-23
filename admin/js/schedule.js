@@ -21,6 +21,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     openNewClassForm(todayStr());
   });
 
+  form.member_id.addEventListener('change', () => {
+    const member = membersById[form.member_id.value];
+    if (member) form.title.value = member.name;
+  });
+
   document.getElementById('cancel-class-form').addEventListener('click', () => {
     formWrap.classList.add('hidden');
   });
@@ -31,10 +36,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const startTime = form.start_time.value.trim();
     const memberId = form.member_id.value;
     const member = membersById[memberId];
+    const title = form.title.value.trim() || (member ? member.name : '');
+
+    if (!title) {
+      alert('제목을 입력해주세요.');
+      return;
+    }
 
     const payload = {
-      title: member ? member.name : '',
-      member_id: memberId,
+      title,
+      member_id: memberId || null,
       class_date: classDate,
       day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       start_time: startTime,
@@ -141,7 +152,7 @@ async function loadMemberOptions() {
 async function loadSchedule() {
   const { data, error } = await sb
     .from('classes')
-    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, instructor:profiles(id, name)')
+    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, instructor:profiles(id, name)')
     .eq('active', true)
     .order('class_date')
     .order('start_time');
@@ -200,6 +211,13 @@ function classCardHtml(c) {
         <span>${disabled ? '잔여 없음' : '출석'}</span>
       </label>
     `;
+  } else {
+    attendanceBtn = `
+      <label class="attend-check">
+        <input type="checkbox" data-complete-toggle="${c.id}" ${c.completed ? 'checked' : ''}>
+        <span>완료</span>
+      </label>
+    `;
   }
 
   const primaryPass = member && member.activePasses[0];
@@ -209,8 +227,9 @@ function classCardHtml(c) {
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
+  const isPersonalDone = !c.member_id && c.completed;
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${c.cancelled ? 'cancelled' : ''}">
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''}">
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
@@ -296,9 +315,13 @@ function renderMonthView() {
         return `
           <div class="month-cell ${isOtherMonth ? 'other-month' : ''}" data-date-cell="${dateStr}">
             <div class="date-num">${cellDate.getDate()}</div>
-            ${dayClasses.map((c) => `
-              <span class="class-pill ${attendanceByClassId[c.id] ? 'checked-in' : ''} ${c.cancelled ? 'cancelled' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
-            `).join('')}
+            ${dayClasses.map((c) => {
+              const pillCheckedIn = !!attendanceByClassId[c.id];
+              const pillPersonalDone = !c.member_id && c.completed;
+              return `
+              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
+            `;
+            }).join('')}
           </div>
         `;
       }).join('')}
@@ -342,6 +365,11 @@ function bindScheduleActions() {
         const attendance = attendanceByClassId[classId];
         if (attendance) cancelAttendance(attendance.id);
       }
+    });
+  });
+  document.querySelectorAll('[data-complete-toggle]').forEach((checkbox) => {
+    checkbox.addEventListener('change', () => {
+      toggleCompleted(checkbox.dataset.completeToggle, checkbox.checked);
     });
   });
   document.querySelectorAll('[data-menu-toggle]').forEach((btn) => {
@@ -420,6 +448,7 @@ function openEdit(id, classes) {
   const form = document.getElementById('class-form');
   form.id.value = c.id;
   form.member_id.value = c.member_id || '';
+  form.title.value = c.title || '';
   form.class_date.value = c.class_date;
   form.start_time.value = c.start_time.slice(0, 5);
   form.instructor_id.value = c.instructor ? c.instructor.id : '';
@@ -431,6 +460,15 @@ function openEdit(id, classes) {
 async function deactivateClass(id) {
   if (!confirm('이 수업을 삭제할까요? 시간표에서 완전히 사라집니다. (출석 기록은 유지됩니다)')) return;
   const { error } = await sb.from('classes').update({ active: false }).eq('id', id);
+  if (error) {
+    alert('처리에 실패했습니다: ' + error.message);
+    return;
+  }
+  await loadSchedule();
+}
+
+async function toggleCompleted(id, completed) {
+  const { error } = await sb.from('classes').update({ completed }).eq('id', id);
   if (error) {
     alert('처리에 실패했습니다: ' + error.message);
     return;
