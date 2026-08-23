@@ -26,6 +26,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (member) form.title.value = member.name;
   });
 
+  form.is_trial.addEventListener('change', () => {
+    if (form.is_trial.checked) form.member_id.value = '';
+    updateTrialFieldsVisibility(form);
+  });
+
   document.getElementById('cancel-class-form').addEventListener('click', () => {
     formWrap.classList.add('hidden');
   });
@@ -34,9 +39,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     const classDate = form.class_date.value;
     const startTime = form.start_time.value.trim();
-    const memberId = form.member_id.value;
+    let memberId = form.member_id.value;
+    let title = form.title.value.trim();
+
+    if (form.is_trial.checked) {
+      const trialName = form.trial_name.value.trim();
+      if (!trialName) {
+        alert('체험 회원 이름을 입력해주세요.');
+        return;
+      }
+      const { data: newMember, error: memberError } = await sb
+        .from('members')
+        .insert({
+          name: trialName,
+          phone: form.trial_phone.value.trim() || null,
+          status: 'trial',
+        })
+        .select()
+        .single();
+
+      if (memberError) {
+        alert('체험 회원 등록에 실패했습니다: ' + memberError.message);
+        return;
+      }
+
+      memberId = newMember.id;
+      title = trialName;
+      await loadMemberOptions();
+    }
+
     const member = membersById[memberId];
-    const title = form.title.value.trim() || (member ? member.name : '');
+    title = title || (member ? member.name : '');
 
     if (!title) {
       alert('제목을 입력해주세요.');
@@ -424,6 +457,13 @@ async function cancelAttendance(attendanceId) {
   await Promise.all([loadMemberOptions(), loadSchedule()]);
 }
 
+function updateTrialFieldsVisibility(form) {
+  const isTrial = form.is_trial.checked;
+  document.getElementById('member-field').classList.toggle('hidden', isTrial);
+  document.getElementById('trial-name-field').classList.toggle('hidden', !isTrial);
+  document.getElementById('trial-phone-field').classList.toggle('hidden', !isTrial);
+}
+
 function openNewClassForm(dateStr) {
   const formWrap = document.getElementById('class-form-wrap');
   const form = document.getElementById('class-form');
@@ -432,6 +472,7 @@ function openNewClassForm(dateStr) {
     form.reset();
     form.id.value = '';
     form.class_date.value = dateStr;
+    updateTrialFieldsVisibility(form);
     document.getElementById('class-form-title').textContent = '새 수업 등록';
     formWrap.classList.remove('hidden');
   } else {
@@ -452,6 +493,8 @@ function openEdit(id, classes) {
   form.class_date.value = c.class_date;
   form.start_time.value = c.start_time.slice(0, 5);
   form.instructor_id.value = c.instructor ? c.instructor.id : '';
+  form.is_trial.checked = false;
+  updateTrialFieldsVisibility(form);
 
   document.getElementById('class-form-title').textContent = '수업 수정';
   document.getElementById('class-form-wrap').classList.remove('hidden');

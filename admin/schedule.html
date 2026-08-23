@@ -37,13 +37,27 @@
       <h2 id="class-form-title">새 수업 등록</h2>
       <form id="class-form" class="form-grid">
         <input type="hidden" name="id">
-        <div class="field">
+        <div class="field" id="member-field">
           <label>회원 (선택사항)</label>
           <select name="member_id"><option value="">선택 안 함 (개인 일정)</option></select>
         </div>
         <div class="field">
+          <label class="checkbox-inline">
+            <input type="checkbox" name="is_trial" id="is-trial-checkbox">
+            체험수업 (신규 회원 자동 등록)
+          </label>
+        </div>
+        <div class="field hidden" id="trial-name-field">
+          <label>체험 회원 이름</label>
+          <input type="text" name="trial_name" placeholder="이름">
+        </div>
+        <div class="field hidden" id="trial-phone-field">
+          <label>연락처 (선택)</label>
+          <input type="text" name="trial_phone" placeholder="010-0000-0000">
+        </div>
+        <div class="field">
           <label>제목</label>
-          <input type="text" name="title" placeholder="예: 개인 일정, 청소, 미팅 등" required>
+          <input type="text" name="title" placeholder="예: 개인 일정, 청소 등 (회원/체험 선택 시 자동 입력)">
         </div>
         <div class="field"><label>날짜</label><input type="date" name="class_date" required></div>
         <div class="field"><label>시작 시간</label><input type="text" name="start_time" placeholder="예: 07:00" required></div>
