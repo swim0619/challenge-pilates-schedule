@@ -112,23 +112,65 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  document.getElementById('prev-week').addEventListener('click', () => {
-    weekCursor.setDate(weekCursor.getDate() - 7);
-    renderCurrentView();
-  });
-  document.getElementById('next-week').addEventListener('click', () => {
-    weekCursor.setDate(weekCursor.getDate() + 7);
-    renderCurrentView();
-  });
-  document.getElementById('prev-month').addEventListener('click', () => {
-    monthCursor.setMonth(monthCursor.getMonth() - 1);
-    renderCurrentView();
-  });
-  document.getElementById('next-month').addEventListener('click', () => {
-    monthCursor.setMonth(monthCursor.getMonth() + 1);
-    renderCurrentView();
-  });
+  document.getElementById('prev-week').addEventListener('click', goToPrevPeriod);
+  document.getElementById('next-week').addEventListener('click', goToNextPeriod);
+  document.getElementById('prev-month').addEventListener('click', goToPrevPeriod);
+  document.getElementById('next-month').addEventListener('click', goToNextPeriod);
+
+  setupSwipeNav(document.getElementById('schedule-body'));
 });
+
+function goToNextPeriod() {
+  if (currentView === 'month') {
+    monthCursor.setMonth(monthCursor.getMonth() + 1);
+  } else {
+    weekCursor.setDate(weekCursor.getDate() + 7);
+  }
+  renderCurrentView();
+}
+
+function goToPrevPeriod() {
+  if (currentView === 'month') {
+    monthCursor.setMonth(monthCursor.getMonth() - 1);
+  } else {
+    weekCursor.setDate(weekCursor.getDate() - 7);
+  }
+  renderCurrentView();
+}
+
+function setupSwipeNav(el) {
+  let touchStartX = null;
+  let touchStartY = null;
+
+  el.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  el.addEventListener('touchend', (e) => {
+    if (touchStartX === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+    touchStartX = null;
+    touchStartY = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return; // 짧거나 세로 스크롤이면 무시
+    if (dx < 0) goToNextPeriod(); else goToPrevPeriod();
+  });
+
+  // 트랙패드 좌우 스와이프(가로 휠 스크롤)도 지원
+  let wheelAccumX = 0;
+  let wheelTimer = null;
+  el.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
+    wheelAccumX += e.deltaX;
+    clearTimeout(wheelTimer);
+    wheelTimer = setTimeout(() => {
+      if (wheelAccumX > 60) goToNextPeriod();
+      else if (wheelAccumX < -60) goToPrevPeriod();
+      wheelAccumX = 0;
+    }, 120);
+  }, { passive: true });
+}
 
 function mondayOf(date) {
   const d = new Date(date);
@@ -186,7 +228,7 @@ async function loadMemberOptions() {
 async function loadSchedule() {
   const { data, error } = await sb
     .from('classes')
-    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, instructor:profiles(id, name)')
+    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, absent, instructor:profiles(id, name)')
     .eq('active', true)
     .order('class_date')
     .order('start_time');
@@ -215,7 +257,7 @@ function computeSessionNumbers() {
   sessionNumByClassId = {};
   const byMember = {};
   allClasses.forEach((c) => {
-    if (!c.member_id || c.cancelled) return;
+    if (!c.member_id || c.cancelled || c.absent) return;
     (byMember[c.member_id] = byMember[c.member_id] || []).push(c);
   });
 
@@ -287,11 +329,12 @@ function classCardHtml(c) {
 
   const isPersonalDone = !c.member_id && c.completed;
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''}">
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''}">
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
           <button data-edit="${c.id}" type="button">수정</button>
+          ${c.member_id ? `<button data-absent-toggle="${c.id}" data-absent="${c.absent}" ${checkedIn ? 'disabled' : ''} type="button">${c.absent ? '결석 해제' : '결석 처리'}</button>` : ''}
           <button data-cancel-toggle="${c.id}" data-cancelled="${c.cancelled}" type="button">${c.cancelled ? '취소 해제' : '취소'}</button>
           <button data-deactivate="${c.id}" type="button">삭제</button>
         </div>
@@ -425,6 +468,12 @@ function bindScheduleActions() {
       }
     });
   });
+  document.querySelectorAll('[data-absent-toggle]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      closeAllMenus();
+      toggleAbsent(btn.dataset.absentToggle, btn.dataset.absent !== 'true');
+    });
+  });
   document.querySelectorAll('[data-complete-toggle]').forEach((checkbox) => {
     checkbox.addEventListener('change', () => {
       toggleCompleted(checkbox.dataset.completeToggle, checkbox.checked);
@@ -469,6 +518,8 @@ async function checkInClass(classId) {
     alert('출석체크에 실패했습니다: ' + error.message);
     return;
   }
+
+  if (c.absent) await sb.from('classes').update({ absent: false }).eq('id', classId);
 
   await Promise.all([loadMemberOptions(), loadSchedule()]);
 }
@@ -537,6 +588,15 @@ async function deactivateClass(id) {
 
 async function toggleCompleted(id, completed) {
   const { error } = await sb.from('classes').update({ completed }).eq('id', id);
+  if (error) {
+    alert('처리에 실패했습니다: ' + error.message);
+    return;
+  }
+  await loadSchedule();
+}
+
+async function toggleAbsent(id, absent) {
+  const { error } = await sb.from('classes').update({ absent }).eq('id', id);
   if (error) {
     alert('처리에 실패했습니다: ' + error.message);
     return;

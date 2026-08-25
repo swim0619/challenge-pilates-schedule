@@ -43,7 +43,7 @@
           <label>회원</label>
           <select name="member_id" required><option value="">회원을 선택하세요</option></select>
         </div>
-        <div class="field"><label>금액</label><input type="number" name="amount" min="0" required></div>
+        <div class="field"><label>금액</label><input type="text" inputmode="numeric" pattern="[0-9]*" name="amount" required></div>
         <div class="field">
           <label>결제수단</label>
           <select name="payment_method">
@@ -56,7 +56,7 @@
         <div class="field"><label>결제일</label><input type="date" name="paid_at" required></div>
         <div class="field">
           <label>회차 (선택)</label>
-          <input type="number" name="total_sessions" min="1" placeholder="예: 10">
+          <input type="text" inputmode="numeric" pattern="[0-9]*" name="total_sessions" placeholder="예: 10">
         </div>
         <div class="field" style="align-self:end; display:flex; gap:8px;">
           <button class="btn btn-primary" type="submit">저장</button>
@@ -67,6 +67,10 @@
 
     <div class="card">
       <div class="form-grid" style="align-items:end;">
+        <div class="field">
+          <label for="month-filter">월</label>
+          <input type="month" id="month-filter">
+        </div>
         <div class="field">
           <label for="method-filter">결제수단</label>
           <select id="method-filter">
@@ -91,6 +95,14 @@
       <div class="stat-card">
         <div class="label">결제 건수</div>
         <div class="value" id="total-count">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">해당 월 신규 등록 인원</div>
+        <div class="value" id="new-member-count">-</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">해당 월 신규 등록 매출</div>
+        <div class="value" id="new-member-revenue">-</div>
       </div>
     </div>
 

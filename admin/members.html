@@ -63,8 +63,8 @@
 
       <div class="table-wrap mt-16">
         <table>
-          <thead><tr><th>이름</th><th>상태</th><th>연락처</th><th>선호 요일/시간</th><th>총 이용횟수</th><th>잔여횟수</th><th></th></tr></thead>
-          <tbody id="member-rows"><tr><td colspan="7" class="empty-state">불러오는 중...</td></tr></tbody>
+          <thead><tr><th>#</th><th>이름</th><th>상태</th><th>연락처</th><th>선호 요일/시간</th><th>총 이용횟수</th><th>잔여횟수</th><th></th></tr></thead>
+          <tbody id="member-rows"><tr><td colspan="8" class="empty-state">불러오는 중...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -125,8 +125,8 @@
       <div class="owner-only mt-16">
         <h3>이용권 추가</h3>
         <form id="new-pass-form" class="form-grid">
-          <div class="field"><label>총 횟수</label><input type="number" name="total_sessions" min="1" required></div>
-          <div class="field"><label>금액</label><input type="number" name="amount" min="0" required></div>
+          <div class="field"><label>총 횟수</label><input type="text" inputmode="numeric" pattern="[0-9]*" name="total_sessions" required></div>
+          <div class="field"><label>금액</label><input type="text" inputmode="numeric" pattern="[0-9]*" name="amount" required></div>
           <div class="field"><label>구입일</label><input type="date" name="purchased_at"></div>
           <div class="field">
             <label>결제수단</label>

@@ -125,6 +125,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const paymentMethod = form.payment_method.value;
     const purchasedAt = form.purchased_at.value || undefined;
 
+    if (!totalSessions || totalSessions < 1) {
+      alert('총 횟수를 확인해주세요.');
+      return;
+    }
+    if (!form.amount.value || amount < 0) {
+      alert('금액을 확인해주세요.');
+      return;
+    }
+
     const { data: pass, error: passError } = await sb
       .from('session_passes')
       .insert({
@@ -179,16 +188,16 @@ async function loadMembers(search = '') {
   const { data, error } = await query;
 
   if (error) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-state">불러오기 실패: ${error.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="empty-state">불러오기 실패: ${error.message}</td></tr>`;
     return;
   }
 
   if (!data || data.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" class="empty-state">등록된 회원이 없습니다.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="empty-state">등록된 회원이 없습니다.</td></tr>';
     return;
   }
 
-  tbody.innerHTML = data.map((m) => {
+  tbody.innerHTML = data.map((m, i) => {
     const remaining = (m.session_passes || [])
       .filter((p) => p.active)
       .reduce((sum, p) => sum + p.remaining_sessions, 0);
@@ -196,6 +205,7 @@ async function loadMembers(search = '') {
     const status = memberStatusBadge(m);
     return `
       <tr class="member-row" data-id="${m.id}" style="cursor:pointer">
+        <td>${i + 1}</td>
         <td>${m.name}</td>
         <td>${status ? `<span class="badge ${status.cls}">${status.text}</span>` : '-'}</td>
         <td>${m.phone || '-'}</td>
@@ -265,8 +275,8 @@ function renderPassRows() {
       return `
         <tr>
           <td><input type="date" data-edit-field="purchased_at" value="${p.purchased_at}" style="width:140px;"></td>
-          <td><input type="number" min="1" data-edit-field="total_sessions" value="${p.total_sessions}" style="width:70px;"></td>
-          <td><input type="number" min="0" data-edit-field="remaining_sessions" value="${p.remaining_sessions}" style="width:70px;"></td>
+          <td><input type="text" inputmode="numeric" pattern="[0-9]*" data-edit-field="total_sessions" value="${p.total_sessions}" style="width:70px;"></td>
+          <td><input type="text" inputmode="numeric" pattern="[0-9]*" data-edit-field="remaining_sessions" value="${p.remaining_sessions}" style="width:70px;"></td>
           <td><span class="badge ${p.remaining_sessions > 0 ? 'badge-success' : 'badge-muted'}">${p.remaining_sessions > 0 ? '사용중' : '소진'}</span></td>
           <td class="owner-only" style="display:flex; gap:6px;">
             <button class="btn btn-primary btn-sm" data-save-pass="${p.id}" type="button">저장</button>

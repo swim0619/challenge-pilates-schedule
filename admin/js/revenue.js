@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage({ ownerOnly: true });
   if (!auth) return;
 
+  document.getElementById('month-filter').value = todayStr().slice(0, 7);
   document.getElementById('filter-btn').addEventListener('click', loadPayments);
 
   await Promise.all([loadPayments(), loadMemberOptions()]);
@@ -83,6 +84,7 @@ async function loadMemberOptions() {
 
 async function loadPayments() {
   const method = document.getElementById('method-filter').value;
+  const month = document.getElementById('month-filter').value; // "YYYY-MM"
   const tbody = document.getElementById('payment-rows');
 
   let query = sb
@@ -91,6 +93,15 @@ async function loadPayments() {
     .order('paid_at', { ascending: false });
 
   if (method) query = query.eq('payment_method', method);
+
+  let monthStart = null;
+  let monthEnd = null;
+  if (month) {
+    const [y, m] = month.split('-').map(Number);
+    monthStart = `${month}-01`;
+    monthEnd = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, '0')}-01`;
+    query = query.gte('paid_at', monthStart).lt('paid_at', monthEnd);
+  }
 
   const { data, error } = await query;
 
@@ -104,6 +115,8 @@ async function loadPayments() {
   const total = currentPayments.reduce((sum, p) => sum + p.amount, 0);
   document.getElementById('total-revenue').textContent = formatCurrency(total);
   document.getElementById('total-count').textContent = currentPayments.length + '건';
+
+  await loadNewMemberStats(monthStart, monthEnd);
 
   if (currentPayments.length === 0) {
     tbody.innerHTML = '<tr><td colspan="6" class="empty-state">결제 내역이 없습니다.</td></tr>';
@@ -130,6 +143,37 @@ async function loadPayments() {
   tbody.querySelectorAll('[data-delete-payment]').forEach((btn) => {
     btn.addEventListener('click', () => deletePayment(btn.dataset.deletePayment));
   });
+}
+
+async function loadNewMemberStats(monthStart, monthEnd) {
+  const countEl = document.getElementById('new-member-count');
+  const revenueEl = document.getElementById('new-member-revenue');
+
+  if (!monthStart || !monthEnd) {
+    countEl.textContent = '-';
+    revenueEl.textContent = '-';
+    return;
+  }
+
+  const { data: newMembers, error } = await sb
+    .from('members')
+    .select('id')
+    .gte('created_at', monthStart)
+    .lt('created_at', monthEnd);
+
+  if (error) {
+    countEl.textContent = '-';
+    revenueEl.textContent = '-';
+    return;
+  }
+
+  const newMemberIds = new Set((newMembers || []).map((m) => m.id));
+  const newMemberRevenue = currentPayments
+    .filter((p) => newMemberIds.has(p.member_id))
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  countEl.textContent = newMemberIds.size + '명';
+  revenueEl.textContent = formatCurrency(newMemberRevenue);
 }
 
 function openEditPayment(id) {

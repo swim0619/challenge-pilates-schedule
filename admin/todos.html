@@ -30,8 +30,12 @@
 
   <main class="admin-main">
     <div class="admin-topbar">
-      <h1>오늘 할일</h1>
-      <span class="today" id="today-label"></span>
+      <h1>할일</h1>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <span class="today" id="today-label"></span>
+        <input type="date" id="todo-date-input" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+        <button class="btn btn-outline btn-sm" type="button" id="todo-today-btn">오늘</button>
+      </div>
     </div>
 
     <div class="card">

@@ -1,12 +1,27 @@
+let currentDate = todayStr();
+
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
   if (!auth) return;
 
-  const today = new Date();
-  document.getElementById('today-label').textContent =
-    today.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+  const dateInput = document.getElementById('todo-date-input');
+  dateInput.value = currentDate;
+  updateDateLabel();
 
   await loadTodos();
+
+  dateInput.addEventListener('change', async () => {
+    currentDate = dateInput.value || todayStr();
+    updateDateLabel();
+    await loadTodos();
+  });
+
+  document.getElementById('todo-today-btn').addEventListener('click', async () => {
+    currentDate = todayStr();
+    dateInput.value = currentDate;
+    updateDateLabel();
+    await loadTodos();
+  });
 
   document.getElementById('todo-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -17,7 +32,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { data: { user } } = await sb.auth.getUser();
     const { error } = await sb.from('todos').insert({
       content,
-      todo_date: todayStr(),
+      todo_date: currentDate,
       created_by: user.id,
     });
 
@@ -31,12 +46,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 });
 
+function updateDateLabel() {
+  const d = new Date(currentDate + 'T00:00:00');
+  document.getElementById('today-label').textContent =
+    d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'short' });
+}
+
 async function loadTodos() {
   const listEl = document.getElementById('todo-list');
   const { data, error } = await sb
     .from('todos')
     .select('id, content, done')
-    .eq('todo_date', todayStr())
+    .eq('todo_date', currentDate)
     .order('created_at');
 
   if (error) {
@@ -45,7 +66,7 @@ async function loadTodos() {
   }
 
   if (!data || data.length === 0) {
-    listEl.innerHTML = '<p class="empty-state">오늘 등록된 할일이 없습니다.</p>';
+    listEl.innerHTML = '<p class="empty-state">등록된 할일이 없습니다.</p>';
     return;
   }
 

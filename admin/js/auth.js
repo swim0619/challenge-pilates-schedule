@@ -81,3 +81,20 @@ function remainingBadgeClass(remaining) {
   if (remaining <= 2) return 'badge-warning';
   return 'badge-success';
 }
+
+// 숫자 입력칸에 포커스된 채로 스크롤하면 브라우저가 값을 증감시켜버리는 것을 방지
+document.addEventListener('wheel', () => {
+  const el = document.activeElement;
+  if (el && el.tagName === 'INPUT' && el.type === 'number') {
+    el.blur();
+  }
+}, { passive: true });
+
+// inputmode="numeric" 입력칸은 숫자 이외 문자를 입력 즉시 제거
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.tagName === 'INPUT' && el.getAttribute('inputmode') === 'numeric') {
+    const cleaned = el.value.replace(/[^0-9]/g, '');
+    if (cleaned !== el.value) el.value = cleaned;
+  }
+});
