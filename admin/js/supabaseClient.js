@@ -14,6 +14,7 @@ if (!SUPABASE_URL.startsWith('https://') || SUPABASE_ANON_KEY === 'YOUR_SUPABASE
       '</div>';
   });
 } else {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const authStorage = localStorage.getItem('remember_me') === 'false' ? sessionStorage : localStorage;
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storage: authStorage } });
   window.sb = sb;
 }

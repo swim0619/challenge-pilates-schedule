@@ -24,8 +24,15 @@
       </div>
       <div class="field">
         <label for="password">비밀번호</label>
-        <input type="password" id="password" name="password" required autocomplete="current-password">
+        <div class="password-field-wrap">
+          <input type="password" id="password" name="password" required autocomplete="current-password">
+          <button type="button" class="password-toggle-btn" id="toggle-password" aria-label="비밀번호 표시">👁</button>
+        </div>
       </div>
+      <label class="remember-me-row">
+        <input type="checkbox" id="remember-me" checked>
+        로그인 상태 유지
+      </label>
       <div class="field-error" id="login-error"></div>
       <button type="submit" class="btn btn-primary" style="width:100%" id="login-submit">로그인</button>
       <p style="text-align:center; margin-top:1em; font-size:.9rem;">
@@ -44,6 +51,14 @@
   const modeToggle = document.getElementById('mode-toggle');
   const nameField = document.getElementById('name-field');
   let mode = 'signin'; // 'signin' | 'signup'
+
+  const passwordInput = document.getElementById('password');
+  const togglePasswordBtn = document.getElementById('toggle-password');
+  togglePasswordBtn.addEventListener('click', () => {
+    const showing = passwordInput.type === 'text';
+    passwordInput.type = showing ? 'password' : 'text';
+    togglePasswordBtn.textContent = showing ? '👁' : '🙈';
+  });
 
   modeToggle.addEventListener('click', (e) => {
     e.preventDefault();
@@ -68,6 +83,14 @@
 
     const email = form.email.value.trim();
     const password = form.password.value;
+
+    const rememberMe = document.getElementById('remember-me').checked;
+    localStorage.setItem('remember_me', rememberMe ? 'true' : 'false');
+    if (!rememberMe) {
+      // 로그인 상태 유지를 껐으면 브라우저 탭을 닫으면 세션이 사라지도록 sessionStorage로 전환
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { storage: sessionStorage } });
+      window.sb = sb;
+    }
 
     if (mode === 'signup') {
       const { data, error } = await sb.auth.signUp({ email, password });

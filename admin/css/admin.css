@@ -133,6 +133,30 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   margin-top: .5em;
   min-height: 1.2em;
 }
+.password-field-wrap { position: relative; }
+.password-field-wrap input { padding-right: 2.6em; }
+.password-toggle-btn {
+  position: absolute;
+  right: .5em;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: .3em;
+  color: var(--text-muted);
+}
+.remember-me-row {
+  display: flex;
+  align-items: center;
+  gap: .5em;
+  font-size: .88rem;
+  color: var(--text-muted);
+  margin-bottom: 1.1em;
+}
+.remember-me-row input { width: auto; }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
