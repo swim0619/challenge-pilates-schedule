@@ -98,3 +98,42 @@ document.addEventListener('input', (e) => {
     if (cleaned !== el.value) el.value = cleaned;
   }
 });
+
+// 사이드바 너비를 드래그로 조절 (전 페이지 공통)
+document.addEventListener('DOMContentLoaded', () => {
+  const shell = document.querySelector('.admin-shell');
+  const sidebar = document.querySelector('.admin-sidebar');
+  if (!shell || !sidebar) return;
+
+  const savedWidth = localStorage.getItem('sidebar_width');
+  if (savedWidth) document.documentElement.style.setProperty('--sidebar-width', savedWidth + 'px');
+
+  const resizer = document.createElement('div');
+  resizer.className = 'sidebar-resizer';
+  sidebar.after(resizer);
+
+  let dragging = false;
+
+  resizer.addEventListener('mousedown', (e) => {
+    dragging = true;
+    resizer.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    const shellRect = shell.getBoundingClientRect();
+    const width = Math.max(160, Math.min(400, e.clientX - shellRect.left));
+    document.documentElement.style.setProperty('--sidebar-width', width + 'px');
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    resizer.classList.remove('dragging');
+    document.body.style.userSelect = '';
+    const width = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width'), 10);
+    if (width) localStorage.setItem('sidebar_width', width);
+  });
+});

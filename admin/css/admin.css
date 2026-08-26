@@ -169,7 +169,7 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   min-height: 100vh;
 }
 .admin-sidebar {
-  width: 220px;
+  width: var(--sidebar-width, 220px);
   flex-shrink: 0;
   background: var(--white);
   color: var(--text);
@@ -177,6 +177,16 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   display: flex;
   flex-direction: column;
   padding: 24px 16px;
+}
+.sidebar-resizer {
+  width: 6px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+}
+.sidebar-resizer:hover,
+.sidebar-resizer.dragging {
+  background: var(--border);
 }
 .admin-sidebar .logo {
   font-family: 'Jua', 'Pretendard', sans-serif;
@@ -435,6 +445,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
 @media (max-width: 780px) {
   .admin-shell { flex-direction: column; }
+  .sidebar-resizer { display: none; }
   .admin-sidebar {
     width: 100%;
     flex-direction: column;

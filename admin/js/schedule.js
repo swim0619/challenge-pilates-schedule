@@ -323,7 +323,7 @@ function classCardHtml(c) {
   const primaryPass = member && member.activePasses[0];
   const sessionNum = primaryPass ? (sessionNumByClassId[c.id] ?? primaryPass.total_sessions - primaryPass.remaining_sessions) : null;
   const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="margin-left:6px;">${sessionNum}/${primaryPass.total_sessions}회차</span>`
+    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="margin-left:6px;">${sessionNum}/${primaryPass.total_sessions}회</span>`
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
