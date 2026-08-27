@@ -365,6 +365,7 @@ function classCardHtml(c) {
 
 function renderWeekView() {
   const bodyEl = document.getElementById('schedule-body');
+  const prevScrollLeft = bodyEl.querySelector('.week-grid-wrap')?.scrollLeft || 0;
 
   const days = [];
   for (let i = 0; i < 7; i++) {
@@ -397,11 +398,15 @@ function renderWeekView() {
     </div>
   `;
 
+  const gridWrap = bodyEl.querySelector('.week-grid-wrap');
+  if (gridWrap) gridWrap.scrollLeft = prevScrollLeft;
+
   bindScheduleActions();
 }
 
 function renderMonthView() {
   const bodyEl = document.getElementById('schedule-body');
+  const prevScrollLeft = bodyEl.querySelector('.month-grid')?.scrollLeft || 0;
   const year = monthCursor.getFullYear();
   const month = monthCursor.getMonth();
 
@@ -442,6 +447,9 @@ function renderMonthView() {
       }).join('')}
     </div>
   `;
+
+  const monthGrid = bodyEl.querySelector('.month-grid');
+  if (monthGrid) monthGrid.scrollLeft = prevScrollLeft;
 
   bindScheduleActions();
 }
