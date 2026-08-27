@@ -475,4 +475,8 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
   .sidebar-footer .who, .sidebar-footer .role-badge { display: none; }
   .sidebar-footer button { width: auto; }
   .admin-main { padding: 20px 16px; }
+
+  .week-grid { grid-template-columns: repeat(7, minmax(132px, 1fr)); }
+  .week-col { padding: 10px; }
+  .month-grid { grid-template-columns: repeat(7, minmax(48px, 1fr)); overflow-x: auto; }
 }
