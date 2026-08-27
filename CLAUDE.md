@@ -78,6 +78,20 @@ This is the largest file and the one most likely to need touching. Key things to
 
 Every admin section is a static `admin/<name>.html` + `admin/js/<name>.js` pair sharing `admin/css/admin.css` and the sidebar nav in `admin/index.html`. New sections should follow the existing pair layout and add a matching link to the sidebar nav (and to `owner-only` if it should be hidden from instructors) rather than introducing client-side routing.
 
+### `automation/naver-blog/` — 블로그 초안 생성 도구
+
+The only non-static, non-browser code in the repo: a standalone Python CLI (its own venv,
+never loaded by the admin pages) that collects source material from Naver search, has Claude
+write a post, finds images, and drives Naver's SmartEditor ONE over CDP to leave a **draft**
+(임시저장). This is the "scheduled job" that `blog_drafts` was designed for — `--save-supabase`
+inserts the generated post into `blog_drafts` with `status: 'draft'` through the anon-key
+policy, so it shows up in `admin/blog.html`.
+
+It attaches to a Chrome launched with `--remote-debugging-port` on a dedicated profile
+(`automation/naver-blog/chrome-profile/`); the human logs into Naver in that window — the tool
+never handles credentials — and it never clicks 발행. When Naver changes the editor DOM, only
+`automation/naver-blog/nblog/selectors.py` needs updating. See its own README for usage.
+
 ### `admin/blog.html` / `blog.js`
 
 Manages `blog_drafts` rows (auto-generated elsewhere, e.g. a scheduled job — the `blog_drafts_anon_insert` RLS policy exists specifically so an unauthenticated scheduled task can insert `status: 'draft'` rows). Staff review/edit/copy the draft text here, then paste it manually into Naver Blog's own editor themselves — there is no Naver API integration in this repo; "게시완료" just flips `status` to `published` after the fact as a manual acknowledgement, it doesn't actually publish anything.

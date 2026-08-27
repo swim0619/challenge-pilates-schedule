@@ -1,0 +1,6 @@
+.venv/
+out/
+.env
+chrome-profile/
+images/*
+!images/.gitkeep
