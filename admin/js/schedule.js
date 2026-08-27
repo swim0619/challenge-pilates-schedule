@@ -154,6 +154,7 @@ function setupSwipeNav(el) {
     touchStartX = null;
     touchStartY = null;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy)) return; // 짧거나 세로 스크롤이면 무시
+    if (isMidInnerScroll(el, dx)) return; // 요일 칸을 옆으로 넘겨보는 중이면 주/월 전환은 하지 않음
     if (dx < 0) goToNextPeriod(); else goToPrevPeriod();
   });
 
@@ -165,11 +166,24 @@ function setupSwipeNav(el) {
     wheelAccumX += e.deltaX;
     clearTimeout(wheelTimer);
     wheelTimer = setTimeout(() => {
+      if (isMidInnerScroll(el, wheelAccumX)) { wheelAccumX = 0; return; }
       if (wheelAccumX > 60) goToNextPeriod();
       else if (wheelAccumX < -60) goToPrevPeriod();
       wheelAccumX = 0;
     }, 120);
   }, { passive: true });
+}
+
+// 요일 칸(.week-grid-wrap/.month-grid)이 자체적으로 가로 스크롤 가능한 상태면,
+// 그 스크롤이 끝(가장자리)에 닿기 전까지는 주/월 전환 스와이프로 취급하지 않는다.
+function isMidInnerScroll(container, dx) {
+  const scroller = container.querySelector('.week-grid-wrap, .month-grid');
+  if (!scroller || scroller.scrollWidth <= scroller.clientWidth + 2) return false;
+  const atRightEdge = scroller.scrollLeft + scroller.clientWidth >= scroller.scrollWidth - 2;
+  const atLeftEdge = scroller.scrollLeft <= 2;
+  if (dx < 0 && !atRightEdge) return true;
+  if (dx > 0 && !atLeftEdge) return true;
+  return false;
 }
 
 function mondayOf(date) {
