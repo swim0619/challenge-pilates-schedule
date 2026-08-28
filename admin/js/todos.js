@@ -1,5 +1,6 @@
 let currentDate = todayStr();
 let currentCategory = 'all';
+let editingTodoId = null;
 
 const CATEGORY_LABEL = { personal: '개인', pilates: '필라테스', swim: '수영' };
 const CATEGORY_BADGE = { personal: 'badge-muted', pilates: 'badge-info', swim: 'badge-warning' };
@@ -89,14 +90,32 @@ async function loadTodos() {
     return;
   }
 
-  listEl.innerHTML = data.map((t) => `
-    <label class="todo-row ${t.done ? 'done' : ''}">
-      <input type="checkbox" data-todo-toggle="${t.id}" ${t.done ? 'checked' : ''}>
-      <span class="badge ${CATEGORY_BADGE[t.category] || 'badge-muted'}">${CATEGORY_LABEL[t.category] || t.category}</span>
-      <span>${escapeHtml(t.content)}</span>
-      <button type="button" class="btn btn-outline btn-sm" data-todo-delete="${t.id}">삭제</button>
-    </label>
-  `).join('');
+  listEl.innerHTML = data.map((t) => {
+    if (t.id === editingTodoId) {
+      return `
+        <div class="todo-row">
+          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+          <select class="edit-category" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+            <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
+            <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
+            <option value="swim" ${t.category === 'swim' ? 'selected' : ''}>수영</option>
+          </select>
+          <button type="button" class="btn btn-primary btn-sm" data-todo-save="${t.id}">저장</button>
+          <button type="button" class="btn btn-outline btn-sm" data-todo-cancel-edit>취소</button>
+        </div>
+      `;
+    }
+
+    return `
+      <label class="todo-row ${t.done ? 'done' : ''}">
+        <input type="checkbox" data-todo-toggle="${t.id}" ${t.done ? 'checked' : ''}>
+        <span class="badge ${CATEGORY_BADGE[t.category] || 'badge-muted'}">${CATEGORY_LABEL[t.category] || t.category}</span>
+        <span>${escapeHtml(t.content)}</span>
+        <button type="button" class="btn btn-outline btn-sm" data-todo-edit="${t.id}">수정</button>
+        <button type="button" class="btn btn-outline btn-sm" data-todo-delete="${t.id}">삭제</button>
+      </label>
+    `;
+  }).join('');
 
   listEl.querySelectorAll('[data-todo-toggle]').forEach((checkbox) => {
     checkbox.addEventListener('change', async () => {
@@ -120,10 +139,50 @@ async function loadTodos() {
       await loadTodos();
     });
   });
+
+  listEl.querySelectorAll('[data-todo-edit]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      editingTodoId = btn.dataset.todoEdit;
+      loadTodos();
+    });
+  });
+
+  listEl.querySelectorAll('[data-todo-cancel-edit]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      editingTodoId = null;
+      loadTodos();
+    });
+  });
+
+  listEl.querySelectorAll('[data-todo-save]').forEach((btn) => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const row = btn.closest('.todo-row');
+      const content = row.querySelector('.edit-content').value.trim();
+      if (!content) {
+        alert('할일 내용을 입력해주세요.');
+        return;
+      }
+      const category = row.querySelector('.edit-category').value;
+
+      const { error } = await sb.from('todos').update({ content, category }).eq('id', btn.dataset.todoSave);
+      if (error) {
+        alert('수정에 실패했습니다: ' + error.message);
+        return;
+      }
+      editingTodoId = null;
+      await loadTodos();
+    });
+  });
 }
 
 function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
