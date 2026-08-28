@@ -66,6 +66,16 @@
           <label>담당 강사</label>
           <select name="instructor_id"><option value="">미배정</option></select>
         </div>
+        <div class="field" id="repeat-weekly-field">
+          <label class="checkbox-inline">
+            <input type="checkbox" name="repeat_weekly" id="repeat-weekly-checkbox">
+            매주 반복 (고정 수업)
+          </label>
+        </div>
+        <div class="field hidden" id="repeat-weeks-field">
+          <label>몇 주 동안 반복할까요?</label>
+          <input type="text" inputmode="numeric" pattern="[0-9]*" name="repeat_weeks" value="8">
+        </div>
         <div class="field" style="align-self:end; display:flex; gap:8px;">
           <button class="btn btn-primary" type="submit">저장</button>
           <button class="btn btn-outline" type="button" id="cancel-class-form">취소</button>

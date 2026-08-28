@@ -32,6 +32,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateTrialFieldsVisibility(form);
   });
 
+  form.repeat_weekly.addEventListener('change', () => {
+    document.getElementById('repeat-weeks-field').classList.toggle('hidden', !form.repeat_weekly.checked);
+  });
+
   document.getElementById('cancel-class-form').addEventListener('click', () => {
     formWrap.classList.add('hidden');
   });
@@ -77,11 +81,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    const payload = {
+    const basePayload = {
       title,
       member_id: memberId || null,
-      class_date: classDate,
-      day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       start_time: startTime,
       end_time: addMinutes(startTime, 60),
       capacity: 1,
@@ -89,9 +91,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const id = form.id.value;
-    const { error } = id
-      ? await sb.from('classes').update(payload).eq('id', id)
-      : await sb.from('classes').insert(payload);
+    const repeatWeekly = !id && form.repeat_weekly.checked;
+    const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
+
+    let error;
+    if (id) {
+      ({ error } = await sb.from('classes').update({
+        ...basePayload,
+        class_date: classDate,
+        day_of_week: new Date(classDate + 'T00:00:00').getDay(),
+      }).eq('id', id));
+    } else {
+      const rows = [];
+      for (let i = 0; i < repeatWeeks; i++) {
+        const d = new Date(classDate + 'T00:00:00');
+        d.setDate(d.getDate() + 7 * i);
+        rows.push({
+          ...basePayload,
+          class_date: toDateStr(d),
+          day_of_week: d.getDay(),
+        });
+      }
+      ({ error } = await sb.from('classes').insert(rows));
+    }
 
     if (error) {
       alert('저장에 실패했습니다: ' + error.message);
@@ -571,6 +593,8 @@ function openNewClassForm(dateStr) {
     form.id.value = '';
     form.class_date.value = dateStr;
     updateTrialFieldsVisibility(form);
+    document.getElementById('repeat-weekly-field').classList.remove('hidden');
+    document.getElementById('repeat-weeks-field').classList.add('hidden');
     document.getElementById('class-form-title').textContent = '새 수업 등록';
     formWrap.classList.remove('hidden');
   } else {
@@ -593,6 +617,9 @@ function openEdit(id, classes) {
   form.instructor_id.value = c.instructor ? c.instructor.id : '';
   form.is_trial.checked = false;
   updateTrialFieldsVisibility(form);
+  form.repeat_weekly.checked = false;
+  document.getElementById('repeat-weekly-field').classList.add('hidden');
+  document.getElementById('repeat-weeks-field').classList.add('hidden');
 
   document.getElementById('class-form-title').textContent = '수업 수정';
   document.getElementById('class-form-wrap').classList.remove('hidden');
