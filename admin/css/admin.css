@@ -162,6 +162,12 @@ button, input, select, textarea { font-family: inherit; font-size: 1rem; }
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 0 16px;
 }
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
 
 /* ===== App shell ===== */
 .admin-shell {

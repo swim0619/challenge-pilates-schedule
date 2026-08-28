@@ -36,49 +36,67 @@
 
     <div class="card hidden owner-only" id="class-form-wrap">
       <h2 id="class-form-title">새 수업 등록</h2>
-      <form id="class-form" class="form-grid">
+      <form id="class-form">
         <input type="hidden" name="id">
-        <div class="field" id="member-field">
-          <label>회원 (선택사항)</label>
-          <select name="member_id"><option value="">선택 안 함 (개인 일정)</option></select>
+
+        <div class="form-row">
+          <div class="field" id="member-field" style="flex:2; min-width:200px;">
+            <label>회원 (선택사항)</label>
+            <select name="member_id"><option value="">선택 안 함 (개인 일정)</option></select>
+          </div>
+          <div class="field" style="align-self:center; padding-top:1.6em;">
+            <label class="checkbox-inline">
+              <input type="checkbox" name="is_trial" id="is-trial-checkbox">
+              체험수업 (신규 회원 자동 등록)
+            </label>
+          </div>
         </div>
-        <div class="field">
-          <label class="checkbox-inline">
-            <input type="checkbox" name="is_trial" id="is-trial-checkbox">
-            체험수업 (신규 회원 자동 등록)
-          </label>
+
+        <div class="form-row hidden" id="trial-name-field">
+          <div class="field" style="flex:1; min-width:160px;">
+            <label>체험 회원 이름</label>
+            <input type="text" name="trial_name" placeholder="이름">
+          </div>
+          <div class="field" id="trial-phone-field" style="flex:1; min-width:160px;">
+            <label>연락처 (선택)</label>
+            <input type="text" name="trial_phone" placeholder="010-0000-0000">
+          </div>
         </div>
-        <div class="field hidden" id="trial-name-field">
-          <label>체험 회원 이름</label>
-          <input type="text" name="trial_name" placeholder="이름">
+
+        <div class="form-row">
+          <div class="field" style="flex:3; min-width:200px;">
+            <label>제목</label>
+            <input type="text" name="title" placeholder="예: 개인 일정, 청소 등 (회원/체험 선택 시 자동 입력)">
+          </div>
         </div>
-        <div class="field hidden" id="trial-phone-field">
-          <label>연락처 (선택)</label>
-          <input type="text" name="trial_phone" placeholder="010-0000-0000">
+
+        <div class="form-row">
+          <div class="field" style="flex:1; min-width:140px;"><label>날짜</label><input type="date" name="class_date" required></div>
+          <div class="field" style="flex:1; min-width:140px;"><label>시작 시간</label><input type="text" name="start_time" placeholder="예: 07:00" required></div>
+          <div class="field" style="flex:1; min-width:140px;">
+            <label>담당 강사</label>
+            <select name="instructor_id"><option value="">미배정</option></select>
+          </div>
         </div>
-        <div class="field">
-          <label>제목</label>
-          <input type="text" name="title" placeholder="예: 개인 일정, 청소 등 (회원/체험 선택 시 자동 입력)">
+
+        <div class="form-row">
+          <div class="field" id="repeat-weekly-field" style="align-self:center;">
+            <label class="checkbox-inline">
+              <input type="checkbox" name="repeat_weekly" id="repeat-weekly-checkbox">
+              매주 반복 (고정 수업)
+            </label>
+          </div>
+          <div class="field hidden" id="repeat-weeks-field" style="flex:1; min-width:140px; max-width:200px;">
+            <label>몇 주 동안 반복할까요?</label>
+            <input type="text" inputmode="numeric" pattern="[0-9]*" name="repeat_weeks" value="8">
+          </div>
         </div>
-        <div class="field"><label>날짜</label><input type="date" name="class_date" required></div>
-        <div class="field"><label>시작 시간</label><input type="text" name="start_time" placeholder="예: 07:00" required></div>
-        <div class="field">
-          <label>담당 강사</label>
-          <select name="instructor_id"><option value="">미배정</option></select>
-        </div>
-        <div class="field" id="repeat-weekly-field">
-          <label class="checkbox-inline">
-            <input type="checkbox" name="repeat_weekly" id="repeat-weekly-checkbox">
-            매주 반복 (고정 수업)
-          </label>
-        </div>
-        <div class="field hidden" id="repeat-weeks-field">
-          <label>몇 주 동안 반복할까요?</label>
-          <input type="text" inputmode="numeric" pattern="[0-9]*" name="repeat_weeks" value="8">
-        </div>
-        <div class="field" style="align-self:end; display:flex; gap:8px;">
-          <button class="btn btn-primary" type="submit">저장</button>
-          <button class="btn btn-outline" type="button" id="cancel-class-form">취소</button>
+
+        <div class="form-row">
+          <div class="field" style="display:flex; gap:8px;">
+            <button class="btn btn-primary" type="submit">저장</button>
+            <button class="btn btn-outline" type="button" id="cancel-class-form">취소</button>
+          </div>
         </div>
       </form>
     </div>
