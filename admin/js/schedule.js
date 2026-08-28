@@ -363,6 +363,10 @@ function classCardHtml(c) {
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
+  const instructorSmall = c.instructor
+    ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor.name}</small>`
+    : (c.member_id ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">미배정</small>` : '');
+
   const isPersonalDone = !c.member_id && c.completed;
   return `
     <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''}">
@@ -376,7 +380,7 @@ function classCardHtml(c) {
         </div>
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
-      <span class="title">${c.title} <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor ? c.instructor.name : '미배정'}</small></span>
+      <span class="title">${c.title}${instructorSmall}</span>
       ${(statusBadge || remainingBadge) ? `<span class="remaining" style="font-size:.78rem;">${statusBadge}${remainingBadge}</span>` : ''}
       <div class="actions">
         ${attendanceBtn}
