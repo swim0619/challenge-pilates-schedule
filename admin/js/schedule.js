@@ -354,8 +354,8 @@ function classCardHtml(c) {
         </div>
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
-      <span class="title">${c.title}</span>
-      <span class="remaining" style="font-size:.78rem;">${c.instructor ? c.instructor.name : '미배정'}${statusBadge}${remainingBadge}</span>
+      <span class="title">${c.title} <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor ? c.instructor.name : '미배정'}</small></span>
+      ${(statusBadge || remainingBadge) ? `<span class="remaining" style="font-size:.78rem;">${statusBadge}${remainingBadge}</span>` : ''}
       <div class="actions">
         ${attendanceBtn}
       </div>
