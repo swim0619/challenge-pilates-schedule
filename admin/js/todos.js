@@ -28,6 +28,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTodos();
   });
 
+  document.getElementById('todo-prev-day-btn').addEventListener('click', () => shiftDate(-1));
+  document.getElementById('todo-next-day-btn').addEventListener('click', () => shiftDate(1));
+
+  async function shiftDate(offsetDays) {
+    const d = new Date(currentDate + 'T00:00:00');
+    d.setDate(d.getDate() + offsetDays);
+    currentDate = todayStrFromDate(d);
+    dateInput.value = currentDate;
+    updateDateLabel();
+    await loadTodos();
+  }
+
   document.getElementById('todo-category-tabs').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-category]');
     if (!btn) return;
@@ -59,6 +71,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTodos();
   });
 });
+
+function todayStrFromDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function updateDateLabel() {
   const d = new Date(currentDate + 'T00:00:00');
