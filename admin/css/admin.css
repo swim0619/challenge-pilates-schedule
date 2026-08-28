@@ -378,6 +378,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .todo-row:last-child { border-bottom: none; }
 .todo-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--checkin); cursor: pointer; flex-shrink: 0; }
 .todo-row span { flex: 1; font-weight: 600; }
+.todo-row .badge { flex: 0 0 auto; }
 .todo-row.done span { text-decoration: line-through; color: var(--text-muted); }
 .todo-row [data-todo-delete] { flex-shrink: 0; }
 
