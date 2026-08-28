@@ -2,8 +2,8 @@ let currentDate = todayStr();
 let currentCategory = 'all';
 let editingTodoId = null;
 
-const CATEGORY_LABEL = { personal: '개인', pilates: '필라테스', swim: '수영' };
-const CATEGORY_BADGE = { personal: 'badge-yellow', pilates: 'badge-success', swim: 'badge-info' };
+const CATEGORY_LABEL = { personal: '개인', pilates: '필라테스', swim: '수영', study: '공부', workout: '운동' };
+const CATEGORY_BADGE = { personal: 'badge-yellow', pilates: 'badge-success', swim: 'badge-info', study: 'badge-purple', workout: 'badge-green' };
 
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
@@ -99,6 +99,8 @@ async function loadTodos() {
             <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
             <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
             <option value="swim" ${t.category === 'swim' ? 'selected' : ''}>수영</option>
+            <option value="study" ${t.category === 'study' ? 'selected' : ''}>공부</option>
+            <option value="workout" ${t.category === 'workout' ? 'selected' : ''}>운동</option>
           </select>
           <button type="button" class="btn btn-primary btn-sm" data-todo-save="${t.id}">저장</button>
           <button type="button" class="btn btn-outline btn-sm" data-todo-cancel-edit>취소</button>

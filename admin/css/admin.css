@@ -283,6 +283,8 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .badge-muted { background: var(--bg-alt); color: var(--text-muted); }
 .badge-info { background: #e3edff; color: #2854a6; }
 .badge-yellow { background: var(--checkin-bg); color: #8a6d1a; }
+.badge-purple { background: #eee3fd; color: #6b3fa0; }
+.badge-green { background: var(--personal-done-bg); color: var(--personal-done); }
 
 /* ===== Attendance checklist ===== */
 .attendance-list { display: flex; flex-direction: column; gap: 10px; }
