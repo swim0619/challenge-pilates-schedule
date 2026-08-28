@@ -113,7 +113,7 @@ async function loadTodos() {
     if (t.id === editingTodoId) {
       return `
         <div class="todo-row">
-          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" autocomplete="off" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
           <select class="edit-category" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
             <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
             <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
