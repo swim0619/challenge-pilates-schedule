@@ -3,7 +3,7 @@ let currentCategory = 'all';
 let editingTodoId = null;
 
 const CATEGORY_LABEL = { personal: '개인', pilates: '필라테스', swim: '수영' };
-const CATEGORY_BADGE = { personal: 'badge-muted', pilates: 'badge-info', swim: 'badge-warning' };
+const CATEGORY_BADGE = { personal: 'badge-yellow', pilates: 'badge-success', swim: 'badge-info' };
 
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
@@ -111,8 +111,11 @@ async function loadTodos() {
         <input type="checkbox" data-todo-toggle="${t.id}" ${t.done ? 'checked' : ''}>
         <span class="badge ${CATEGORY_BADGE[t.category] || 'badge-muted'}">${CATEGORY_LABEL[t.category] || t.category}</span>
         <span>${escapeHtml(t.content)}</span>
-        <button type="button" class="btn btn-outline btn-sm" data-todo-edit="${t.id}">수정</button>
-        <button type="button" class="btn btn-outline btn-sm" data-todo-delete="${t.id}">삭제</button>
+        <button type="button" class="card-menu-btn" data-todo-menu-toggle="${t.id}">⋯</button>
+        <div class="card-menu-dropdown hidden" data-todo-menu="${t.id}">
+          <button type="button" data-todo-edit="${t.id}">수정</button>
+          <button type="button" data-todo-delete="${t.id}" data-deactivate>삭제</button>
+        </div>
       </label>
     `;
   }).join('');
@@ -137,6 +140,17 @@ async function loadTodos() {
         return;
       }
       await loadTodos();
+    });
+  });
+
+  listEl.querySelectorAll('[data-todo-menu-toggle]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const dropdown = document.querySelector(`[data-todo-menu="${btn.dataset.todoMenuToggle}"]`);
+      const isOpen = !dropdown.classList.contains('hidden');
+      closeAllTodoMenus();
+      if (!isOpen) dropdown.classList.remove('hidden');
     });
   });
 
@@ -177,6 +191,12 @@ async function loadTodos() {
     });
   });
 }
+
+function closeAllTodoMenus() {
+  document.querySelectorAll('.card-menu-dropdown').forEach((el) => el.classList.add('hidden'));
+}
+
+document.addEventListener('click', closeAllTodoMenus);
 
 function escapeHtml(str) {
   return String(str)
