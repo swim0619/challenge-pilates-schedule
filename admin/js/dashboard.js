@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const [{ data: classes }, { data: attendance }] = await Promise.all([
     sb.from('classes')
-      .select('id, title, member_id, start_time, end_time, instructor:profiles(name)')
+      .select('id, title, member_id, absent, start_time, end_time, instructor:profiles(name)')
       .eq('class_date', todayIso)
       .eq('active', true)
       .order('start_time'),
@@ -19,10 +19,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const realClasses = (classes || []).filter((c) => c.member_id);
   const personalEntries = (classes || []).filter((c) => !c.member_id);
+  const absentCount = (classes || []).filter((c) => c.absent).length;
 
   document.getElementById('stat-classes').textContent = realClasses.length;
   document.getElementById('stat-personal').textContent = personalEntries.length;
   document.getElementById('stat-attendance').textContent = (attendance || []).length;
+  document.getElementById('stat-absent').textContent = absentCount;
 
   const listEl = document.getElementById('today-classes');
   if (!classes || classes.length === 0) {
