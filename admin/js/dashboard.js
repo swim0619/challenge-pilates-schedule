@@ -10,14 +10,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const [{ data: classes }, { data: attendance }] = await Promise.all([
     sb.from('classes')
-      .select('id, title, start_time, end_time, instructor:profiles(name)')
+      .select('id, title, member_id, start_time, end_time, instructor:profiles(name)')
       .eq('class_date', todayIso)
       .eq('active', true)
       .order('start_time'),
     sb.from('attendance').select('id').eq('session_date', todayIso),
   ]);
 
-  document.getElementById('stat-classes').textContent = (classes || []).length;
+  const realClasses = (classes || []).filter((c) => c.member_id);
+  const personalEntries = (classes || []).filter((c) => !c.member_id);
+
+  document.getElementById('stat-classes').textContent = realClasses.length;
+  document.getElementById('stat-personal').textContent = personalEntries.length;
   document.getElementById('stat-attendance').textContent = (attendance || []).length;
 
   const listEl = document.getElementById('today-classes');
