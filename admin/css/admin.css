@@ -489,5 +489,12 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
   .week-grid { grid-template-columns: repeat(7, minmax(132px, 1fr)); }
   .week-col { padding: 10px; }
-  .month-grid { grid-template-columns: repeat(7, minmax(48px, 1fr)); overflow-x: auto; }
+  .month-grid { grid-template-columns: repeat(7, minmax(76px, 1fr)); overflow-x: auto; }
+  .class-pill {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    word-break: keep-all;
+    line-height: 1.25;
+  }
 }
