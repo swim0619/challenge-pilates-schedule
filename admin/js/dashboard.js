@@ -89,16 +89,19 @@ async function loadPeriodStats(today) {
   const monthEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const monthEnd = toDateStr(monthEndDate);
 
-  const [weekDone, weekCancelled, monthDone] = await Promise.all([
+  const [weekDone, weekCancelled, weekAbsent, monthDone] = await Promise.all([
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', weekStart).lte('session_date', weekEnd),
     sb.from('classes').select('id', { count: 'exact', head: true })
       .eq('cancelled', true).gte('class_date', weekStart).lte('class_date', weekEnd),
+    sb.from('classes').select('id', { count: 'exact', head: true })
+      .eq('absent', true).gte('class_date', weekStart).lte('class_date', weekEnd),
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', monthStart).lte('session_date', monthEnd),
   ]);
 
   document.getElementById('stat-week-done').textContent = (weekDone.count || 0) + '회';
   document.getElementById('stat-week-cancelled').textContent = (weekCancelled.count || 0) + '회';
+  document.getElementById('stat-week-absent').textContent = (weekAbsent.count || 0) + '회';
   document.getElementById('stat-month-done').textContent = (monthDone.count || 0) + '회';
 }
