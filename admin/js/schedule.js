@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const id = form.id.value;
-    const repeatWeekly = !id && form.repeat_weekly.checked;
+    const repeatWeekly = form.repeat_weekly.checked;
     const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
 
     let error;
@@ -101,6 +101,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         class_date: classDate,
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       }).eq('id', id));
+
+      if (!error && repeatWeekly && repeatWeeks > 1) {
+        const rows = [];
+        for (let i = 1; i < repeatWeeks; i++) {
+          const d = new Date(classDate + 'T00:00:00');
+          d.setDate(d.getDate() + 7 * i);
+          rows.push({
+            ...basePayload,
+            class_date: toDateStr(d),
+            day_of_week: d.getDay(),
+          });
+        }
+        ({ error } = await sb.from('classes').insert(rows));
+      }
     } else {
       const rows = [];
       for (let i = 0; i < repeatWeeks; i++) {
@@ -627,7 +641,6 @@ function openEdit(id, classes) {
   form.is_trial.checked = false;
   updateTrialFieldsVisibility(form);
   form.repeat_weekly.checked = false;
-  document.getElementById('repeat-weekly-field').classList.add('hidden');
   document.getElementById('repeat-weeks-field').classList.add('hidden');
 
   document.getElementById('class-form-title').textContent = '수업 수정';
