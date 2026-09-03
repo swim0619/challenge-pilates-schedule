@@ -10,15 +10,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const [{ data: classes }, { data: attendance }] = await Promise.all([
     sb.from('classes')
-      .select('id, title, start_time, end_time, instructor:profiles(name)')
+      .select('id, title, member_id, absent, start_time, end_time, instructor:profiles(name)')
       .eq('class_date', todayIso)
       .eq('active', true)
       .order('start_time'),
     sb.from('attendance').select('id').eq('session_date', todayIso),
   ]);
 
-  document.getElementById('stat-classes').textContent = (classes || []).length;
+  const realClasses = (classes || []).filter((c) => c.member_id);
+  const personalEntries = (classes || []).filter((c) => !c.member_id);
+  const absentCount = (classes || []).filter((c) => c.absent).length;
+
+  document.getElementById('stat-classes').textContent = realClasses.length;
+  document.getElementById('stat-personal').textContent = personalEntries.length;
   document.getElementById('stat-attendance').textContent = (attendance || []).length;
+  document.getElementById('stat-absent').textContent = absentCount;
 
   const listEl = document.getElementById('today-classes');
   if (!classes || classes.length === 0) {
@@ -83,16 +89,19 @@ async function loadPeriodStats(today) {
   const monthEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const monthEnd = toDateStr(monthEndDate);
 
-  const [weekDone, weekCancelled, monthDone] = await Promise.all([
+  const [weekDone, weekCancelled, weekAbsent, monthDone] = await Promise.all([
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', weekStart).lte('session_date', weekEnd),
     sb.from('classes').select('id', { count: 'exact', head: true })
       .eq('cancelled', true).gte('class_date', weekStart).lte('class_date', weekEnd),
+    sb.from('classes').select('id', { count: 'exact', head: true })
+      .eq('absent', true).gte('class_date', weekStart).lte('class_date', weekEnd),
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', monthStart).lte('session_date', monthEnd),
   ]);
 
   document.getElementById('stat-week-done').textContent = (weekDone.count || 0) + '회';
   document.getElementById('stat-week-cancelled').textContent = (weekCancelled.count || 0) + '회';
+  document.getElementById('stat-week-absent').textContent = (weekAbsent.count || 0) + '회';
   document.getElementById('stat-month-done').textContent = (monthDone.count || 0) + '회';
 }

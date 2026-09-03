@@ -28,6 +28,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTodos();
   });
 
+  document.getElementById('todo-prev-day-btn').addEventListener('click', () => shiftDate(-1));
+  document.getElementById('todo-next-day-btn').addEventListener('click', () => shiftDate(1));
+
+  async function shiftDate(offsetDays) {
+    const d = new Date(currentDate + 'T00:00:00');
+    d.setDate(d.getDate() + offsetDays);
+    currentDate = todayStrFromDate(d);
+    dateInput.value = currentDate;
+    updateDateLabel();
+    await loadTodos();
+  }
+
   document.getElementById('todo-category-tabs').addEventListener('click', async (e) => {
     const btn = e.target.closest('[data-category]');
     if (!btn) return;
@@ -59,6 +71,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadTodos();
   });
 });
+
+function todayStrFromDate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 function updateDateLabel() {
   const d = new Date(currentDate + 'T00:00:00');
@@ -94,7 +113,7 @@ async function loadTodos() {
     if (t.id === editingTodoId) {
       return `
         <div class="todo-row">
-          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" autocomplete="off" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
           <select class="edit-category" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
             <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
             <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
