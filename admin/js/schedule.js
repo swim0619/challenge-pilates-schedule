@@ -341,9 +341,14 @@ function classCardHtml(c) {
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
+  const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
+  const unresolvedBadge = isUnresolved
+    ? '<span class="badge badge-warning" style="margin-left:6px;" title="지난 수업인데 출석/결석 처리가 안 되어 있어요">미확인</span>'
+    : '';
+
   const isPersonalDone = !c.member_id && c.completed;
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''}">
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''}">
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
@@ -355,7 +360,7 @@ function classCardHtml(c) {
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
       <span class="title">${c.title}</span>
-      <span class="remaining" style="font-size:.78rem;">${c.instructor ? c.instructor.name : '미배정'}${statusBadge}${remainingBadge}</span>
+      <span class="remaining" style="font-size:.78rem;">${c.instructor ? c.instructor.name : '미배정'}${statusBadge}${remainingBadge}${unresolvedBadge}</span>
       <div class="actions">
         ${attendanceBtn}
       </div>
