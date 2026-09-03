@@ -400,8 +400,8 @@ function classCardHtml(c) {
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
       <span class="title">${c.title}${instructorSmall}</span>
-      ${(statusBadge || remainingBadge || unresolvedBadge) ? `<span class="remaining" style="font-size:.78rem;">${statusBadge}${remainingBadge}${unresolvedBadge}</span>` : ''}
       <div class="actions">
+        ${statusBadge}${remainingBadge}${unresolvedBadge}
         ${attendanceBtn}
       </div>
     </div>
