@@ -400,7 +400,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .week-class.unresolved { box-shadow: 0 0 0 2px var(--warning) inset, var(--shadow); }
 .week-class .time { font-weight: 700; color: var(--navy-dark); display: block; font-size: .85rem; }
 .week-class .title { display: block; margin: .2em 0; font-weight: 600; }
-.week-class .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 6px; }
+.week-class .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
 .attend-check {
   display: inline-flex;
   align-items: center;

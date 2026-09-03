@@ -336,10 +336,10 @@ function renderCurrentView() {
 
 function memberStatusBadgeHtml(member) {
   if (member.status === 'withdrawn') {
-    return '<span class="badge badge-muted" style="margin-left:6px;">탈퇴</span>';
+    return '<span class="badge badge-muted" style="padding:.1em .4em; font-size:.72rem;">탈퇴</span>';
   }
   if (member.status === 'trial') {
-    return '<span class="badge badge-info" style="margin-left:6px;">체험수업</span>';
+    return '<span class="badge badge-info" style="padding:.1em .4em; font-size:.72rem;">체험수업</span>';
   }
   return '';
 }
@@ -373,13 +373,13 @@ function classCardHtml(c) {
   const primaryPass = member && member.activePasses[0];
   const sessionNum = primaryPass ? (sessionNumByClassId[c.id] ?? primaryPass.total_sessions - primaryPass.remaining_sessions) : null;
   const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="margin-left:6px;">${sessionNum}/${primaryPass.total_sessions}회</span>`
+    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">${sessionNum}/${primaryPass.total_sessions}회</span>`
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
   const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
   const unresolvedBadge = isUnresolved
-    ? '<span class="badge badge-warning" style="margin-left:6px;" title="지난 수업인데 출석/결석 처리가 안 되어 있어요">미확인</span>'
+    ? '<span class="badge badge-warning" style="padding:.1em .4em; font-size:.72rem;" title="지난 수업인데 출석/결석 처리가 안 되어 있어요">미확인</span>'
     : '';
 
   const instructorSmall = c.instructor
