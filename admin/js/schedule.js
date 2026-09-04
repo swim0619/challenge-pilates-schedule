@@ -95,6 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
 
     let error;
+    let skippedDuplicates = 0;
     if (id) {
       ({ error } = await sb.from('classes').update({
         ...basePayload,
@@ -102,22 +103,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       }).eq('id', id));
     } else {
+      // 같은 회원이 같은 날짜·시간에 이미 등록돼 있으면 중복 생성하지 않음 (매주 반복 시 실수 방지)
+      const existingSlots = new Set(
+        allClasses
+          .filter((c) => c.member_id && !c.cancelled)
+          .map((c) => `${c.member_id}|${c.class_date}|${c.start_time.slice(0, 5)}`)
+      );
+
       const rows = [];
       for (let i = 0; i < repeatWeeks; i++) {
         const d = new Date(classDate + 'T00:00:00');
         d.setDate(d.getDate() + 7 * i);
+        const rowDate = toDateStr(d);
+
+        if (memberId) {
+          const slotKey = `${memberId}|${rowDate}|${startTime}`;
+          if (existingSlots.has(slotKey)) {
+            skippedDuplicates++;
+            continue;
+          }
+          existingSlots.add(slotKey);
+        }
+
         rows.push({
           ...basePayload,
-          class_date: toDateStr(d),
+          class_date: rowDate,
           day_of_week: d.getDay(),
         });
       }
+
+      if (rows.length === 0) {
+        alert('이미 같은 회원이 같은 시간에 등록되어 있어 추가되지 않았습니다.');
+        return;
+      }
+
       ({ error } = await sb.from('classes').insert(rows));
     }
 
     if (error) {
       alert('저장에 실패했습니다: ' + error.message);
       return;
+    }
+
+    if (skippedDuplicates > 0) {
+      alert(`이미 같은 회원이 등록되어 있던 ${skippedDuplicates}주는 건너뛰고 나머지만 등록했습니다.`);
     }
 
     formWrap.classList.add('hidden');
