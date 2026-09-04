@@ -94,6 +94,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const repeatWeekly = form.repeat_weekly.checked;
     const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
 
+    // 같은 회원이 같은 날짜·시간에 이미 등록돼 있으면 중복 생성하지 않음 (매주 반복 시 실수 방지)
+    const existingSlots = new Set(
+      allClasses
+        .filter((c) => c.member_id && !c.cancelled && c.id !== id)
+        .map((c) => `${c.member_id}|${c.class_date}|${c.start_time.slice(0, 5)}`)
+    );
+
     let error;
     let skippedDuplicates = 0;
     if (id) {
@@ -103,27 +110,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       }).eq('id', id));
 
+      if (memberId) existingSlots.add(`${memberId}|${classDate}|${startTime}`);
+
       if (!error && repeatWeekly && repeatWeeks > 1) {
         const rows = [];
         for (let i = 1; i < repeatWeeks; i++) {
           const d = new Date(classDate + 'T00:00:00');
           d.setDate(d.getDate() + 7 * i);
+          const rowDate = toDateStr(d);
+
+          if (memberId) {
+            const slotKey = `${memberId}|${rowDate}|${startTime}`;
+            if (existingSlots.has(slotKey)) {
+              skippedDuplicates++;
+              continue;
+            }
+            existingSlots.add(slotKey);
+          }
+
           rows.push({
             ...basePayload,
-            class_date: toDateStr(d),
+            class_date: rowDate,
             day_of_week: d.getDay(),
           });
         }
-        ({ error } = await sb.from('classes').insert(rows));
+        if (rows.length > 0) {
+          ({ error } = await sb.from('classes').insert(rows));
+        }
       }
     } else {
-      // 같은 회원이 같은 날짜·시간에 이미 등록돼 있으면 중복 생성하지 않음 (매주 반복 시 실수 방지)
-      const existingSlots = new Set(
-        allClasses
-          .filter((c) => c.member_id && !c.cancelled)
-          .map((c) => `${c.member_id}|${c.class_date}|${c.start_time.slice(0, 5)}`)
-      );
-
       const rows = [];
       for (let i = 0; i < repeatWeeks; i++) {
         const d = new Date(classDate + 'T00:00:00');
