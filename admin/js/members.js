@@ -2,6 +2,7 @@ let currentMemberId = null;
 let currentMemberData = null;
 let currentPasses = [];
 let editingPassId = null;
+let attCountByPass = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
@@ -225,13 +226,19 @@ async function loadMembers(search = '') {
 async function selectMember(memberId) {
   currentMemberId = memberId;
 
-  const [{ data: member }, { data: passes }, { count: usedCount }] = await Promise.all([
+  const [{ data: member }, { data: passes }, { count: usedCount }, { data: attRows }] = await Promise.all([
     sb.from('members').select('id, name, phone, memo, preferred_schedule, status, created_at').eq('id', memberId).single(),
     sb.from('session_passes').select('*').eq('member_id', memberId).order('purchased_at', { ascending: false }),
     sb.from('attendance').select('id', { count: 'exact', head: true }).eq('member_id', memberId),
+    sb.from('attendance').select('pass_id').eq('member_id', memberId),
   ]);
 
   if (!member) return;
+
+  attCountByPass = {};
+  (attRows || []).forEach((a) => {
+    attCountByPass[a.pass_id] = (attCountByPass[a.pass_id] || 0) + 1;
+  });
 
   currentMemberData = member;
   document.getElementById('edit-member-form-wrap').classList.add('hidden');
@@ -271,12 +278,17 @@ function renderPassRows() {
   }
 
   passRows.innerHTML = currentPasses.map((p) => {
+    const expectedRemaining = p.total_sessions - (attCountByPass[p.id] || 0);
+    const mismatchWarning = expectedRemaining !== p.remaining_sessions
+      ? `<span class="badge badge-danger" title="출석 ${attCountByPass[p.id] || 0}회 기준 예상 잔여는 ${expectedRemaining}회입니다">⚠ 확인필요</span>`
+      : '';
+
     if (p.id === editingPassId) {
       return `
         <tr>
           <td><input type="date" data-edit-field="purchased_at" value="${p.purchased_at}" style="width:140px;"></td>
           <td><input type="text" inputmode="numeric" pattern="[0-9]*" data-edit-field="total_sessions" value="${p.total_sessions}" style="width:70px;"></td>
-          <td><input type="text" inputmode="numeric" pattern="[0-9]*" data-edit-field="remaining_sessions" value="${p.remaining_sessions}" style="width:70px;"></td>
+          <td><input type="text" inputmode="numeric" pattern="[0-9]*" data-edit-field="remaining_sessions" value="${p.remaining_sessions}" style="width:70px;"> ${mismatchWarning}</td>
           <td><span class="badge ${p.remaining_sessions > 0 ? 'badge-success' : 'badge-muted'}">${p.remaining_sessions > 0 ? '사용중' : '소진'}</span></td>
           <td class="owner-only" style="display:flex; gap:6px;">
             <button class="btn btn-primary btn-sm" data-save-pass="${p.id}" type="button">저장</button>
@@ -289,7 +301,7 @@ function renderPassRows() {
       <tr>
         <td>${p.purchased_at}</td>
         <td>${p.total_sessions}회</td>
-        <td>${p.remaining_sessions}회</td>
+        <td>${p.remaining_sessions}회 ${mismatchWarning}</td>
         <td><span class="badge ${p.remaining_sessions > 0 ? 'badge-success' : 'badge-muted'}">${p.remaining_sessions > 0 ? '사용중' : '소진'}</span></td>
         <td class="owner-only" style="display:flex; gap:6px;">
           <button class="btn btn-outline btn-sm" data-edit-pass="${p.id}" type="button">수정</button>

@@ -91,7 +91,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     const id = form.id.value;
-    const repeatWeekly = !id && form.repeat_weekly.checked;
+    const repeatWeekly = form.repeat_weekly.checked;
     const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
 
     let error;
@@ -102,6 +102,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         class_date: classDate,
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       }).eq('id', id));
+
+      if (!error && repeatWeekly && repeatWeeks > 1) {
+        const rows = [];
+        for (let i = 1; i < repeatWeeks; i++) {
+          const d = new Date(classDate + 'T00:00:00');
+          d.setDate(d.getDate() + 7 * i);
+          rows.push({
+            ...basePayload,
+            class_date: toDateStr(d),
+            day_of_week: d.getDay(),
+          });
+        }
+        ({ error } = await sb.from('classes').insert(rows));
+      }
     } else {
       // 같은 회원이 같은 날짜·시간에 이미 등록돼 있으면 중복 생성하지 않음 (매주 반복 시 실수 방지)
       const existingSlots = new Set(
@@ -351,10 +365,10 @@ function renderCurrentView() {
 
 function memberStatusBadgeHtml(member) {
   if (member.status === 'withdrawn') {
-    return '<span class="badge badge-muted" style="margin-left:6px;">탈퇴</span>';
+    return '<span class="badge badge-muted" style="padding:.1em .4em; font-size:.72rem;">탈퇴</span>';
   }
   if (member.status === 'trial') {
-    return '<span class="badge badge-info" style="margin-left:6px;">체험수업</span>';
+    return '<span class="badge badge-info" style="padding:.1em .4em; font-size:.72rem;">체험수업</span>';
   }
   return '';
 }
@@ -388,9 +402,14 @@ function classCardHtml(c) {
   const primaryPass = member && member.activePasses[0];
   const sessionNum = primaryPass ? (sessionNumByClassId[c.id] ?? primaryPass.total_sessions - primaryPass.remaining_sessions) : null;
   const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="margin-left:6px;">${sessionNum}/${primaryPass.total_sessions}회</span>`
+    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">${sessionNum}/${primaryPass.total_sessions}회</span>`
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
+
+  const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
+  const unresolvedBadge = isUnresolved
+    ? '<span class="badge badge-warning" style="padding:.1em .4em; font-size:.72rem;" title="지난 수업인데 출석/결석 처리가 안 되어 있어요">미확인</span>'
+    : '';
 
   const instructorSmall = c.instructor
     ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor.name}</small>`
@@ -398,7 +417,7 @@ function classCardHtml(c) {
 
   const isPersonalDone = !c.member_id && c.completed;
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''}">
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''}">
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
@@ -410,8 +429,8 @@ function classCardHtml(c) {
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
       <span class="title">${c.title}${instructorSmall}</span>
-      ${(statusBadge || remainingBadge) ? `<span class="remaining" style="font-size:.78rem;">${statusBadge}${remainingBadge}</span>` : ''}
       <div class="actions">
+        ${statusBadge}${remainingBadge}${unresolvedBadge}
         ${attendanceBtn}
       </div>
     </div>
@@ -651,7 +670,6 @@ function openEdit(id, classes) {
   form.is_trial.checked = false;
   updateTrialFieldsVisibility(form);
   form.repeat_weekly.checked = false;
-  document.getElementById('repeat-weekly-field').classList.add('hidden');
   document.getElementById('repeat-weeks-field').classList.add('hidden');
 
   document.getElementById('class-form-title').textContent = '수업 수정';

@@ -2,6 +2,7 @@ let currentDate = todayStr();
 let currentCategory = 'all';
 let editingTodoId = null;
 
+const CATEGORY_ORDER = ['personal', 'pilates', 'swim', 'study', 'workout'];
 const CATEGORY_LABEL = { personal: '개인', pilates: '필라테스', swim: '수영', study: '공부', workout: '수련' };
 const CATEGORY_BADGE = { personal: 'badge-yellow', pilates: 'badge-success', swim: 'badge-info', study: 'badge-purple', workout: 'badge-green' };
 
@@ -102,6 +103,10 @@ async function loadTodos() {
   if (error) {
     listEl.innerHTML = `<p class="empty-state">불러오기 실패: ${error.message}</p>`;
     return;
+  }
+
+  if (data) {
+    data.sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
   }
 
   if (!data || data.length === 0) {
