@@ -106,7 +106,10 @@ async function loadTodos() {
   }
 
   if (data) {
-    data.sort((a, b) => CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category));
+    data.sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
+    });
   }
 
   if (!data || data.length === 0) {
