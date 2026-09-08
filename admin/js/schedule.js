@@ -546,11 +546,11 @@ function renderWeekView() {
               ${dayClasses.length === 0
                 ? '<p class="empty-state" style="padding:16px 0;">-</p>'
                 : `
-                  <div class="week-period">
+                  <div class="week-period ${amClasses.length === 0 ? 'week-period-empty' : ''}">
                     <div class="week-period-label">오전</div>
                     ${amClasses.map(classCardHtml).join('')}
                   </div>
-                  <div class="week-period">
+                  <div class="week-period ${pmClasses.length === 0 ? 'week-period-empty' : ''}">
                     <div class="week-period-label">오후</div>
                     ${pmClasses.map(classCardHtml).join('')}
                   </div>

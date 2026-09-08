@@ -336,6 +336,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .week-col { background: var(--bg-alt); border-radius: var(--radius); padding: 12px; min-height: 100px; cursor: pointer; }
 .week-col h4 { margin: 0 0 10px; font-size: .9rem; color: var(--text-muted); text-align: center; }
 .week-period { min-height: 28px; margin-bottom: 20px; }
+.week-period.week-period-empty { min-height: 88px; }
 .week-period:last-child { margin-bottom: 0; }
 .week-period + .week-period { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--border); }
 .week-period-label {
