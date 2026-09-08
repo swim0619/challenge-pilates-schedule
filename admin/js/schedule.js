@@ -40,6 +40,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     formWrap.classList.add('hidden');
   });
 
+  document.getElementById('unrepeat-btn').addEventListener('click', async () => {
+    const memberId = form.member_id.value;
+    const classDate = form.class_date.value;
+    const startTimeVal = form.start_time.value.trim();
+    if (!memberId || !classDate || !startTimeVal) return;
+
+    const dayOfWeek = new Date(classDate + 'T00:00:00').getDay();
+
+    const futureCount = allClasses.filter((c) =>
+      c.member_id === memberId &&
+      c.day_of_week === dayOfWeek &&
+      c.start_time.slice(0, 5) === startTimeVal &&
+      c.class_date > classDate &&
+      !c.cancelled
+    ).length;
+
+    if (futureCount === 0) {
+      alert('이후로 예정된 반복 수업이 없습니다.');
+      return;
+    }
+
+    if (!confirm(`이 시간(같은 요일·시간) 이후로 예정된 반복 수업 ${futureCount}건을 모두 취소할까요?`)) return;
+
+    const { error } = await sb.from('classes')
+      .update({ cancelled: true })
+      .eq('member_id', memberId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('start_time', startTimeVal)
+      .gt('class_date', classDate)
+      .eq('cancelled', false);
+
+    if (error) {
+      alert('취소에 실패했습니다: ' + error.message);
+      return;
+    }
+
+    formWrap.classList.add('hidden');
+    await loadSchedule();
+  });
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const classDate = form.class_date.value;
@@ -662,6 +702,7 @@ function openNewClassForm(dateStr) {
     updateTrialFieldsVisibility(form);
     document.getElementById('repeat-weekly-field').classList.remove('hidden');
     document.getElementById('repeat-weeks-field').classList.add('hidden');
+    document.getElementById('unrepeat-field').classList.add('hidden');
     document.getElementById('class-form-title').textContent = '새 수업 등록';
     formWrap.classList.remove('hidden');
   } else {
@@ -686,6 +727,7 @@ function openEdit(id, classes) {
   updateTrialFieldsVisibility(form);
   form.repeat_weekly.checked = false;
   document.getElementById('repeat-weeks-field').classList.add('hidden');
+  document.getElementById('unrepeat-field').classList.toggle('hidden', !c.member_id);
 
   document.getElementById('class-form-title').textContent = '수업 수정';
   document.getElementById('class-form-wrap').classList.remove('hidden');
