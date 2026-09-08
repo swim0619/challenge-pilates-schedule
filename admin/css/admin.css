@@ -335,6 +335,16 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .week-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
 .week-col { background: var(--bg-alt); border-radius: var(--radius); padding: 12px; min-height: 100px; cursor: pointer; }
 .week-col h4 { margin: 0 0 10px; font-size: .9rem; color: var(--text-muted); text-align: center; }
+.week-period { min-height: 28px; margin-bottom: 12px; }
+.week-period:last-child { margin-bottom: 0; }
+.week-period-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
 .week-class { position: relative; background: var(--white); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
 .card-menu { position: absolute; top: 6px; right: 6px; }
 .card-menu-btn {

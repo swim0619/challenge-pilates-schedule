@@ -514,12 +514,23 @@ function renderWeekView() {
           const dateStr = toDateStr(d);
           const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled);
           const isToday = dateStr === todayStr();
+          const amClasses = dayClasses.filter((c) => c.start_time < '12:00:00');
+          const pmClasses = dayClasses.filter((c) => c.start_time >= '12:00:00');
           return `
             <div class="week-col" data-date-cell="${dateStr}">
               <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' · 오늘' : ''}</h4>
               ${dayClasses.length === 0
                 ? '<p class="empty-state" style="padding:16px 0;">-</p>'
-                : dayClasses.map(classCardHtml).join('')}
+                : `
+                  <div class="week-period">
+                    <div class="week-period-label">오전</div>
+                    ${amClasses.map(classCardHtml).join('')}
+                  </div>
+                  <div class="week-period">
+                    <div class="week-period-label">오후</div>
+                    ${pmClasses.map(classCardHtml).join('')}
+                  </div>
+                `}
             </div>
           `;
         }).join('')}
