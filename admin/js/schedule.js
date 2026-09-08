@@ -512,7 +512,7 @@ function renderWeekView() {
       <div class="week-grid">
         ${days.map((d) => {
           const dateStr = toDateStr(d);
-          const dayClasses = allClasses.filter((c) => c.class_date === dateStr);
+          const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled);
           const isToday = dateStr === todayStr();
           return `
             <div class="week-col" data-date-cell="${dateStr}">
@@ -560,7 +560,7 @@ function renderMonthView() {
       ${cells.map((cellDate) => {
         const isOtherMonth = cellDate.getMonth() !== month;
         const dateStr = toDateStr(cellDate);
-        const dayClasses = allClasses.filter((c) => c.class_date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time));
+        const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled).sort((a, b) => a.start_time.localeCompare(b.start_time));
         return `
           <div class="month-cell ${isOtherMonth ? 'other-month' : ''}" data-date-cell="${dateStr}">
             <div class="date-num">${cellDate.getDate()}</div>
