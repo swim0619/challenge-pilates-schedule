@@ -431,8 +431,8 @@ function renderWeekView() {
           const dayClasses = allClasses.filter((c) => c.class_date === dateStr);
           const isToday = dateStr === todayStr();
           return `
-            <div class="week-col" data-date-cell="${dateStr}">
-              <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' · 오늘' : ''}</h4>
+            <div class="week-col ${isToday ? 'today' : ''}" data-date-cell="${dateStr}">
+              <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' <span class="today-badge">오늘</span>' : ''}</h4>
               ${dayClasses.length === 0
                 ? '<p class="empty-state" style="padding:16px 0;">-</p>'
                 : dayClasses.map(classCardHtml).join('')}
