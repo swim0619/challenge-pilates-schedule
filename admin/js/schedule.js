@@ -302,20 +302,34 @@ function setupSwipeNav(el) {
     if (dx < 0) goToNextPeriod(); else goToPrevPeriod();
   });
 
-  // 트랙패드 좌우 스와이프(가로 휠 스크롤)도 지원
-  let wheelAccumX = 0;
-  let wheelTimer = null;
-  el.addEventListener('wheel', (e) => {
-    if (Math.abs(e.deltaX) <= Math.abs(e.deltaY)) return;
-    wheelAccumX += e.deltaX;
-    clearTimeout(wheelTimer);
-    wheelTimer = setTimeout(() => {
-      if (isMidInnerScroll(el, wheelAccumX)) { wheelAccumX = 0; return; }
-      if (wheelAccumX > 60) goToNextPeriod();
-      else if (wheelAccumX < -60) goToPrevPeriod();
-      wheelAccumX = 0;
-    }, 120);
-  }, { passive: true });
+  // 마우스로 클릭한 채 좌우로 끌었을 때도 스와이프로 인식 (트랙패드 휠 스크롤은 의도치 않게 자주 튀어서 제외함)
+  let mouseStartX = null;
+  let mouseStartY = null;
+  let isMouseDragging = false;
+
+  el.addEventListener('mousedown', (e) => {
+    mouseStartX = e.clientX;
+    mouseStartY = e.clientY;
+    isMouseDragging = true;
+  });
+
+  el.addEventListener('mouseup', (e) => {
+    if (!isMouseDragging || mouseStartX === null) return;
+    isMouseDragging = false;
+    const dx = e.clientX - mouseStartX;
+    const dy = e.clientY - mouseStartY;
+    mouseStartX = null;
+    mouseStartY = null;
+    if (Math.abs(dx) < 80 || Math.abs(dx) < Math.abs(dy)) return; // 짧거나 세로 이동이면 무시
+    if (isMidInnerScroll(el, dx)) return; // 요일 칸을 옆으로 넘겨보는 중이면 주/월 전환은 하지 않음
+    if (dx < 0) goToNextPeriod(); else goToPrevPeriod();
+  });
+
+  el.addEventListener('mouseleave', () => {
+    isMouseDragging = false;
+    mouseStartX = null;
+    mouseStartY = null;
+  });
 }
 
 // 요일 칸(.week-grid-wrap/.month-grid)이 자체적으로 가로 스크롤 가능한 상태면,
