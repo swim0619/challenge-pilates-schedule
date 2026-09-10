@@ -347,6 +347,18 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
   border-radius: 999px;
   vertical-align: middle;
 }
+.week-period { min-height: 28px; margin-bottom: 20px; }
+.week-period.week-period-empty { min-height: 88px; }
+.week-period:last-child { margin-bottom: 0; }
+.week-period + .week-period { margin-top: 20px; padding-top: 16px; border-top: 2px solid var(--border); }
+.week-period-label {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px dashed var(--border);
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
 .week-class { position: relative; background: var(--white); border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; box-shadow: var(--shadow); }
 .card-menu { position: absolute; top: 6px; right: 6px; }
 .card-menu-btn {
@@ -444,7 +456,11 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .month-daylabel { text-align: center; font-size: .8rem; color: var(--text-muted); font-weight: 700; padding-bottom: 6px; }
 .month-cell { background: var(--bg-alt); border-radius: 10px; min-height: 92px; padding: 6px; cursor: pointer; }
 .month-cell.other-month { opacity: .4; }
-.month-cell .date-num { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+.month-cell .date-num { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px; }
+.week-col.holiday, .month-cell.holiday { background: var(--danger-bg); }
+.holiday-label { color: var(--danger); font-weight: 700; }
+.week-col h4 .holiday-label { display: block; font-size: .75rem; margin-top: 2px; }
+.month-cell .date-num .holiday-label { font-size: .68rem; font-weight: 700; }
 .class-pill {
   display: block;
   background: var(--white);

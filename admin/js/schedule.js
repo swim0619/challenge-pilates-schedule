@@ -1,3 +1,27 @@
+// 대한민국 법정 공휴일 (대체공휴일 포함). 해가 바뀌면 다음 해 목록을 추가해줘야 함.
+const KOREAN_HOLIDAYS = {
+  '2026-01-01': '신정',
+  '2026-02-16': '설날 연휴',
+  '2026-02-17': '설날',
+  '2026-02-18': '설날 연휴',
+  '2026-03-01': '삼일절',
+  '2026-03-02': '삼일절 대체공휴일',
+  '2026-05-05': '어린이날',
+  '2026-05-24': '부처님오신날',
+  '2026-05-25': '부처님오신날 대체공휴일',
+  '2026-06-06': '현충일',
+  '2026-07-17': '제헌절',
+  '2026-08-15': '광복절',
+  '2026-08-17': '광복절 대체공휴일',
+  '2026-09-24': '추석 연휴',
+  '2026-09-25': '추석',
+  '2026-09-26': '추석 연휴',
+  '2026-10-03': '개천절',
+  '2026-10-05': '개천절 대체공휴일',
+  '2026-10-09': '한글날',
+  '2026-12-25': '크리스마스',
+};
+
 let instructorOptions = [];
 let membersById = {};
 let allClasses = [];
@@ -38,6 +62,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('cancel-class-form').addEventListener('click', () => {
     formWrap.classList.add('hidden');
+  });
+
+  document.getElementById('unrepeat-btn').addEventListener('click', async () => {
+    const memberId = form.member_id.value;
+    const classDate = form.class_date.value;
+    const startTimeVal = form.start_time.value.trim();
+    if (!memberId || !classDate || !startTimeVal) return;
+
+    const dayOfWeek = new Date(classDate + 'T00:00:00').getDay();
+
+    const futureCount = allClasses.filter((c) =>
+      c.member_id === memberId &&
+      c.day_of_week === dayOfWeek &&
+      c.start_time.slice(0, 5) === startTimeVal &&
+      c.class_date > classDate &&
+      !c.cancelled
+    ).length;
+
+    if (futureCount === 0) {
+      alert('이후로 예정된 반복 수업이 없습니다.');
+      return;
+    }
+
+    if (!confirm(`이 시간(같은 요일·시간) 이후로 예정된 반복 수업 ${futureCount}건을 모두 취소할까요?`)) return;
+
+    const { error } = await sb.from('classes')
+      .update({ cancelled: true })
+      .eq('member_id', memberId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('start_time', startTimeVal)
+      .gt('class_date', classDate)
+      .eq('cancelled', false);
+
+    if (error) {
+      alert('취소에 실패했습니다: ' + error.message);
+      return;
+    }
+
+    formWrap.classList.add('hidden');
+    await loadSchedule();
   });
 
   form.addEventListener('submit', async (e) => {
@@ -94,7 +158,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     const repeatWeekly = form.repeat_weekly.checked;
     const repeatWeeks = repeatWeekly ? Math.max(1, Math.min(52, Number(form.repeat_weeks.value) || 1)) : 1;
 
+    // 같은 회원이 같은 날짜·시간에 이미 등록돼 있으면 중복 생성하지 않음 (매주 반복 시 실수 방지)
+    const existingSlots = new Set(
+      allClasses
+        .filter((c) => c.member_id && !c.cancelled && c.id !== id)
+        .map((c) => `${c.member_id}|${c.class_date}|${c.start_time.slice(0, 5)}`)
+    );
+
     let error;
+    let skippedDuplicates = 0;
     if (id) {
       ({ error } = await sb.from('classes').update({
         ...basePayload,
@@ -102,36 +174,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
       }).eq('id', id));
 
+      if (memberId) existingSlots.add(`${memberId}|${classDate}|${startTime}`);
+
       if (!error && repeatWeekly && repeatWeeks > 1) {
         const rows = [];
         for (let i = 1; i < repeatWeeks; i++) {
           const d = new Date(classDate + 'T00:00:00');
           d.setDate(d.getDate() + 7 * i);
+          const rowDate = toDateStr(d);
+
+          if (memberId) {
+            const slotKey = `${memberId}|${rowDate}|${startTime}`;
+            if (existingSlots.has(slotKey)) {
+              skippedDuplicates++;
+              continue;
+            }
+            existingSlots.add(slotKey);
+          }
+
           rows.push({
             ...basePayload,
-            class_date: toDateStr(d),
+            class_date: rowDate,
             day_of_week: d.getDay(),
           });
         }
-        ({ error } = await sb.from('classes').insert(rows));
+        if (rows.length > 0) {
+          ({ error } = await sb.from('classes').insert(rows));
+        }
       }
     } else {
       const rows = [];
       for (let i = 0; i < repeatWeeks; i++) {
         const d = new Date(classDate + 'T00:00:00');
         d.setDate(d.getDate() + 7 * i);
+        const rowDate = toDateStr(d);
+
+        if (memberId) {
+          const slotKey = `${memberId}|${rowDate}|${startTime}`;
+          if (existingSlots.has(slotKey)) {
+            skippedDuplicates++;
+            continue;
+          }
+          existingSlots.add(slotKey);
+        }
+
         rows.push({
           ...basePayload,
-          class_date: toDateStr(d),
+          class_date: rowDate,
           day_of_week: d.getDay(),
         });
       }
+
+      if (rows.length === 0) {
+        alert('이미 같은 회원이 같은 시간에 등록되어 있어 추가되지 않았습니다.');
+        return;
+      }
+
       ({ error } = await sb.from('classes').insert(rows));
     }
 
     if (error) {
       alert('저장에 실패했습니다: ' + error.message);
       return;
+    }
+
+    if (skippedDuplicates > 0) {
+      alert(`이미 같은 회원이 등록되어 있던 ${skippedDuplicates}주는 건너뛰고 나머지만 등록했습니다.`);
     }
 
     formWrap.classList.add('hidden');
@@ -428,14 +536,25 @@ function renderWeekView() {
       <div class="week-grid">
         ${days.map((d) => {
           const dateStr = toDateStr(d);
-          const dayClasses = allClasses.filter((c) => c.class_date === dateStr);
+          const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled);
           const isToday = dateStr === todayStr();
+          const amClasses = dayClasses.filter((c) => c.start_time < '12:00:00');
+          const pmClasses = dayClasses.filter((c) => c.start_time >= '12:00:00');
           return `
-            <div class="week-col ${isToday ? 'today' : ''}" data-date-cell="${dateStr}">
-              <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' <span class="today-badge">오늘</span>' : ''}</h4>
+            <div class="week-col ${isToday ? 'today' : ''} ${KOREAN_HOLIDAYS[dateStr] ? 'holiday' : ''}" data-date-cell="${dateStr}">
+              <h4>${DAY_LABELS[d.getDay()]} ${d.getMonth() + 1}/${d.getDate()}${isToday ? ' <span class="today-badge">오늘</span>' : ''}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</h4>
               ${dayClasses.length === 0
                 ? '<p class="empty-state" style="padding:16px 0;">-</p>'
-                : dayClasses.map(classCardHtml).join('')}
+                : `
+                  <div class="week-period ${amClasses.length === 0 ? 'week-period-empty' : ''}">
+                    <div class="week-period-label">오전</div>
+                    ${amClasses.map(classCardHtml).join('')}
+                  </div>
+                  <div class="week-period ${pmClasses.length === 0 ? 'week-period-empty' : ''}">
+                    <div class="week-period-label">오후</div>
+                    ${pmClasses.map(classCardHtml).join('')}
+                  </div>
+                `}
             </div>
           `;
         }).join('')}
@@ -476,10 +595,10 @@ function renderMonthView() {
       ${cells.map((cellDate) => {
         const isOtherMonth = cellDate.getMonth() !== month;
         const dateStr = toDateStr(cellDate);
-        const dayClasses = allClasses.filter((c) => c.class_date === dateStr).sort((a, b) => a.start_time.localeCompare(b.start_time));
+        const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled).sort((a, b) => a.start_time.localeCompare(b.start_time));
         return `
-          <div class="month-cell ${isOtherMonth ? 'other-month' : ''}" data-date-cell="${dateStr}">
-            <div class="date-num">${cellDate.getDate()}</div>
+          <div class="month-cell ${isOtherMonth ? 'other-month' : ''} ${KOREAN_HOLIDAYS[dateStr] ? 'holiday' : ''}" data-date-cell="${dateStr}">
+            <div class="date-num">${cellDate.getDate()}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</div>
             ${dayClasses.map((c) => {
               const pillCheckedIn = !!attendanceByClassId[c.id];
               const pillPersonalDone = !c.member_id && c.completed;
@@ -618,6 +737,7 @@ function openNewClassForm(dateStr) {
     updateTrialFieldsVisibility(form);
     document.getElementById('repeat-weekly-field').classList.remove('hidden');
     document.getElementById('repeat-weeks-field').classList.add('hidden');
+    document.getElementById('unrepeat-field').classList.add('hidden');
     document.getElementById('class-form-title').textContent = '새 수업 등록';
     formWrap.classList.remove('hidden');
   } else {
@@ -642,6 +762,7 @@ function openEdit(id, classes) {
   updateTrialFieldsVisibility(form);
   form.repeat_weekly.checked = false;
   document.getElementById('repeat-weeks-field').classList.add('hidden');
+  document.getElementById('unrepeat-field').classList.toggle('hidden', !c.member_id);
 
   document.getElementById('class-form-title').textContent = '수업 수정';
   document.getElementById('class-form-wrap').classList.remove('hidden');
