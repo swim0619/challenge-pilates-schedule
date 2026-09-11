@@ -487,8 +487,10 @@ function classCardHtml(c) {
     : (c.member_id ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">미배정</small>` : '');
 
   const isPersonalDone = !c.member_id && c.completed;
+  const isPersonal = !c.member_id;
+  const isTrial = member && member.status === 'trial';
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''}">
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''}">
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
