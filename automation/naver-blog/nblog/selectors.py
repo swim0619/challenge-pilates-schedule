@@ -46,6 +46,16 @@ IMAGE_TYPE_OPTION = {
     "슬라이드": "li.se-image-type-item[data-log='limgatt.slide']",
 }
 
+# 기울이기 버튼 (굵게와 같은 방식으로 상태를 읽는다)
+TOOLBAR_ITALIC = "button.se-italic-toolbar-button"
+
+# 글자 배경색(형광펜) 팔레트.
+# 스와치는 위치가 아니라 '실제 색'으로 찾는다 — 팔레트 배치가 바뀌어도 안전하다.
+TOOLBAR_BG_COLOR = "button[data-name='background-color']"
+COLOR_SWATCH = ".se-color-palette"
+COLOR_NO_COLOR = ".se-color-palette-no-color"
+HIGHLIGHT_RGB = "rgb(255, 248, 178)"   # 노랑 열 맨 위 연한 노랑 (#FFF8B2)
+
 # 굵게 버튼. 켜져 있으면 클래스에 se-is-selected 가 붙는다.
 TOOLBAR_BOLD = "button.se-bold-toolbar-button"
 TOGGLE_ON_CLASS = "se-is-selected"

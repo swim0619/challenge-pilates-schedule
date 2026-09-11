@@ -23,21 +23,27 @@ LINE_MIN, LINE_MAX = 10, 20
 BLANK_LINE = True           # 문장 흐름이 바뀌는 자리에 한 줄 띄기
 QUOTE_LEAD_BLANK = 2        # 인용구(소제목) 앞에 띄울 줄 수
 MENU_STYLE = "프레임"         # 메뉴·가격 목록을 담을 인용구 스타일
+MENU_SIZE = "16"            # 메뉴 목록 글자 크기
+MENU_BOLD = True            # 메뉴 목록 굵게
+MENU_ITALIC = True          # 메뉴 목록 기울이기
+HIGHLIGHT = True            # ==강조== 구간에 연한 노랑 형광펜
 
 HEAD_EMOJI = ["🌿", "💪", "🔥", "✨", "📌", "🍀", "🔎", "🌙"]
 
 _BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
-_BOLD_SPAN = re.compile(r"\*\*.+?\*\*")
+_MARK_RE = re.compile(r"==(.+?)==")
+_SEG_RE = re.compile(r"\*\*(.+?)\*\*|==(.+?)==")
+_BOLD_SPAN = re.compile(r"\*\*.+?\*\*|==.+?==")
 _GLUE = "\u0000"   # 줄바꿈 계산 중 **강조** 안의 공백을 잠시 묶어두는 표식
 
 
 def _vis_len(text):
     """화면에 실제로 보이는 글자수 (** 마커는 세지 않는다)."""
-    return len(text.replace("**", "").replace(_GLUE, " "))
+    return len(text.replace("**", "").replace("==", "").replace(_GLUE, " "))
 
 
 def _glue_bold(text):
-    """**강조** 구간이 줄 사이로 잘리지 않도록 내부 공백을 묶는다."""
+    """**굵게** / ==형광펜== 구간이 줄 사이로 잘리지 않도록 내부 공백을 묶는다."""
     return _BOLD_SPAN.sub(lambda m: m.group(0).replace(" ", _GLUE), text)
 
 
@@ -115,15 +121,65 @@ class Editor:
         except Exception:
             self.page.keyboard.press("%s+b" % MOD)   # 최후 수단
 
+    def _toggle_is_on(self, selector):
+        try:
+            cls = self.loc(selector).first.get_attribute("class") or ""
+            return S.TOGGLE_ON_CLASS in cls
+        except Exception:
+            return None
+
+    def set_italic(self, on):
+        """기울이기를 원하는 상태로 맞춘다 (굵게와 같은 방식)."""
+        state = self._toggle_is_on(S.TOOLBAR_ITALIC)
+        if state is None or state == on:
+            return
+        try:
+            self.loc(S.TOOLBAR_ITALIC).first.click(timeout=3000)
+            self.page.wait_for_timeout(180)
+        except Exception:
+            pass
+
+    def set_highlight(self, on):
+        """글자 배경색(형광펜)을 켜거나 끈다. 켤 때는 연한 노랑."""
+        try:
+            self.loc(S.TOOLBAR_BG_COLOR).first.click(timeout=3000)
+            self.page.wait_for_timeout(500)
+            if on:
+                target = self.page.evaluate(
+                    """(rgb) => { const els=[...document.querySelectorAll('%s')];
+                         const i = els.findIndex(e => getComputedStyle(e).backgroundColor === rgb);
+                         return i; }""" % S.COLOR_SWATCH, S.HIGHLIGHT_RGB)
+                if target is None or target < 0:
+                    self.page.keyboard.press("Escape")
+                    return False
+                self.loc(S.COLOR_SWATCH).nth(target).click(timeout=3000)
+            else:
+                self.loc(S.COLOR_NO_COLOR).first.click(timeout=3000)
+            self.page.wait_for_timeout(250)
+            return True
+        except Exception:
+            try:
+                self.page.keyboard.press("Escape")
+            except Exception:
+                pass
+            return False
+
     def type_rich(self, text):
         """**강조** 표시만 굵게 처리하면서 타이핑."""
         pos = 0
-        for m in _BOLD_RE.finditer(text):
+        for m in _SEG_RE.finditer(text):
             if m.start() > pos:
                 self.type(text[pos : m.start()])
-            self.set_bold(True)
-            self.type(m.group(1))
-            self.set_bold(False)
+            if m.group(1) is not None:          # **굵게**
+                self.set_bold(True)
+                self.type(m.group(1))
+                self.set_bold(False)
+            else:                                # ==형광펜==
+                if HIGHLIGHT:
+                    self.set_highlight(True)
+                self.type(m.group(2))
+                if HIGHLIGHT:
+                    self.set_highlight(False)
             pos = m.end()
         if pos < len(text):
             self.type(text[pos:])
@@ -267,8 +323,8 @@ def write_post(ed, post, log=print):
             elif block.type == "menu" and block.items:
                 # 메뉴는 문장으로 풀지 않고 '이름  가격' 으로 나열해 프레임 안에 넣는다
                 _lead_blank(ed, idx)
-                _insert_quote(ed, list(block.items),
-                              style=block.style or MENU_STYLE, log=log, bold=False)
+                _insert_quote(ed, list(block.items), style=block.style or MENU_STYLE,
+                              log=log, bold=MENU_BOLD, italic=MENU_ITALIC, size=MENU_SIZE)
 
             elif block.type == "callout":
                 # 콜아웃도 본문과 같은 기준으로 줄을 나눈다 (모바일에서 한 줄이 넘치지 않게)
@@ -373,7 +429,7 @@ def _lead_blank(ed, idx):
         ed.enter(QUOTE_LEAD_BLANK)
 
 
-def _insert_quote(ed, text, style="", log=print, bold=None):
+def _insert_quote(ed, text, style="", log=print, bold=None, italic=False, size=None):
     """지정한 스타일의 인용구 블록을 넣고 그 안에 글을 쓴다.
 
     text 에 리스트를 주면 인용구 안에서 줄을 바꿔가며 여러 줄로 넣는다
@@ -409,6 +465,10 @@ def _insert_quote(ed, text, style="", log=print, bold=None):
         ed.ensure_focus()
 
     use_bold = QUOTE_BOLD if bold is None else bold
+    if size:
+        _apply_font_size(ed, size)
+    if italic:
+        ed.set_italic(True)
     if use_bold:
         ed.set_bold(True)
     lines = text if isinstance(text, (list, tuple)) else [text]
@@ -418,6 +478,8 @@ def _insert_quote(ed, text, style="", log=print, bold=None):
             ed.enter()
     if use_bold:
         ed.set_bold(False)
+    if italic:
+        ed.set_italic(False)
     _new_body_paragraph(ed)
 
 
@@ -640,7 +702,7 @@ def _split_sentences(text, lo=LINE_MIN, hi=LINE_MAX):
 
 
 def _strip_bold(text):
-    return _BOLD_RE.sub(r"\1", text)
+    return _MARK_RE.sub(r"\1", _BOLD_RE.sub(r"\1", text))
 
 
 # ── 임시저장 ────────────────────────────────────────────────────────
