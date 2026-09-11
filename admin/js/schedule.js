@@ -26,7 +26,6 @@ let instructorOptions = [];
 let membersById = {};
 let allClasses = [];
 let attendanceByClassId = {};
-let sessionNumByClassId = {};
 let currentView = 'week';
 let weekCursor = mondayOf(new Date());
 let monthCursor = new Date();
@@ -421,31 +420,7 @@ async function loadSchedule() {
     (attendanceRows || []).forEach((a) => { attendanceByClassId[a.class_id] = a; });
   }
 
-  computeSessionNumbers();
   renderCurrentView();
-}
-
-function computeSessionNumbers() {
-  sessionNumByClassId = {};
-  const byMember = {};
-  allClasses.forEach((c) => {
-    if (!c.member_id || c.cancelled || c.absent) return;
-    (byMember[c.member_id] = byMember[c.member_id] || []).push(c);
-  });
-
-  Object.keys(byMember).forEach((memberId) => {
-    const member = membersById[memberId];
-    const pass = member && member.activePasses[0];
-    if (!pass) return;
-
-    const list = byMember[memberId]; // allClasses is already ordered by class_date, start_time
-    const checkedCount = list.filter((c) => attendanceByClassId[c.id]).length;
-    const base = Math.max(0, pass.total_sessions - pass.remaining_sessions - checkedCount);
-
-    list.forEach((c, i) => {
-      sessionNumByClassId[c.id] = base + i + 1;
-    });
-  });
 }
 
 function renderCurrentView() {
@@ -493,9 +468,8 @@ function classCardHtml(c) {
   }
 
   const primaryPass = member && member.activePasses[0];
-  const sessionNum = primaryPass ? (sessionNumByClassId[c.id] ?? primaryPass.total_sessions - primaryPass.remaining_sessions) : null;
   const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">${sessionNum}/${primaryPass.total_sessions}회</span>`
+    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">잔여 ${primaryPass.remaining_sessions}회</span>`
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
