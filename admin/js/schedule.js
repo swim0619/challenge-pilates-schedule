@@ -468,6 +468,10 @@ function classCardHtml(c) {
   }
 
   const primaryPass = member && member.activePasses[0];
+  const usedSessions = primaryPass ? primaryPass.total_sessions - primaryPass.remaining_sessions : null;
+  const usedLabel = primaryPass
+    ? `<span class="used-label">진행 ${usedSessions}회</span>`
+    : '';
   const remainingBadge = primaryPass
     ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">잔여 ${primaryPass.remaining_sessions}회</span>`
     : '';
@@ -496,6 +500,7 @@ function classCardHtml(c) {
       </div>
       <span class="time">${formatTime(c.start_time)}</span>
       <span class="title">${c.title}${instructorSmall}</span>
+      ${usedLabel}
       <div class="actions">
         ${statusBadge}${remainingBadge}${unresolvedBadge}
         ${attendanceBtn}
