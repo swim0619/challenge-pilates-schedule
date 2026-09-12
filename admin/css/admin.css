@@ -282,7 +282,7 @@ tr:last-child td { border-bottom: none; }
 td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
 /* ===== Badge ===== */
-.badge { display: inline-flex; align-items: center; padding: .25em .7em; border-radius: 999px; font-size: .82rem; font-weight: 700; }
+.badge { display: inline-flex; align-items: center; padding: .25em .7em; border-radius: 999px; font-size: .82rem; font-weight: 700; white-space: nowrap; }
 .badge-success { background: var(--success-bg); color: var(--success); }
 .badge-warning { background: var(--warning-bg); color: var(--warning); }
 .badge-danger { background: var(--danger-bg); color: var(--danger); }
