@@ -426,7 +426,6 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .week-class.trial { border: 2px solid #2854a6; }
 .week-class .time { font-weight: 700; color: var(--navy-dark); display: block; font-size: .85rem; }
 .week-class .title { display: block; margin: .2em 0; font-weight: 600; }
-.used-label { display: block; font-size: .7rem; color: var(--text-muted); }
 .week-class .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
 .attend-check {
   display: inline-flex;
