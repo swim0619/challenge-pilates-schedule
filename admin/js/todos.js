@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       category: form.category.value,
       todo_date: currentDate,
       created_by: user.id,
+      is_daily: form.is_daily.checked,
     });
 
     if (error) {
@@ -90,8 +91,8 @@ async function loadTodos() {
   const listEl = document.getElementById('todo-list');
   let query = sb
     .from('todos')
-    .select('id, content, done, category')
-    .eq('todo_date', currentDate)
+    .select('id, content, done, category, is_daily, done_date')
+    .or(`todo_date.eq.${currentDate},is_daily.eq.true`)
     .order('created_at');
 
   if (currentCategory !== 'all') {
@@ -105,53 +106,84 @@ async function loadTodos() {
     return;
   }
 
-  if (data) {
-    data.sort((a, b) => {
-      if (a.done !== b.done) return a.done ? 1 : -1;
-      return CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
-    });
-  }
+  const dailyTodos = (data || []).filter((t) => t.is_daily);
+  const regularTodos = (data || []).filter((t) => !t.is_daily);
 
-  if (!data || data.length === 0) {
+  sortTodos(dailyTodos, (t) => t.done_date === currentDate);
+  sortTodos(regularTodos, (t) => t.done);
+
+  if (dailyTodos.length === 0 && regularTodos.length === 0) {
     listEl.innerHTML = '<p class="empty-state">등록된 할일이 없습니다.</p>';
     return;
   }
 
-  listEl.innerHTML = data.map((t) => {
-    if (t.id === editingTodoId) {
-      return `
-        <div class="todo-row">
-          <input type="text" class="edit-content" value="${escapeHtml(t.content)}" autocomplete="off" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
-          <select class="edit-category" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
-            <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
-            <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
-            <option value="swim" ${t.category === 'swim' ? 'selected' : ''}>수영</option>
-            <option value="study" ${t.category === 'study' ? 'selected' : ''}>공부</option>
-            <option value="workout" ${t.category === 'workout' ? 'selected' : ''}>수련</option>
-          </select>
-          <button type="button" class="btn btn-primary btn-sm" data-todo-save="${t.id}">저장</button>
-          <button type="button" class="btn btn-outline btn-sm" data-todo-cancel-edit>취소</button>
-        </div>
-      `;
-    }
+  const sections = [];
+  if (dailyTodos.length > 0) {
+    sections.push(`
+      <h3 style="font-size:.95rem; margin:0 0 8px;">매일 하는 일</h3>
+      ${dailyTodos.map((t) => todoRowHtml(t, t.done_date === currentDate)).join('')}
+    `);
+  }
+  if (regularTodos.length > 0) {
+    sections.push(`
+      <h3 style="font-size:.95rem; margin:${dailyTodos.length > 0 ? '20px' : '0'} 0 8px;">오늘 할 일</h3>
+      ${regularTodos.map((t) => todoRowHtml(t, t.done)).join('')}
+    `);
+  }
 
+  listEl.innerHTML = sections.join('');
+  bindTodoRowEvents(listEl);
+}
+
+function sortTodos(list, isDoneFn) {
+  list.sort((a, b) => {
+    const aDone = isDoneFn(a);
+    const bDone = isDoneFn(b);
+    if (aDone !== bDone) return aDone ? 1 : -1;
+    return CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
+  });
+}
+
+function todoRowHtml(t, isDoneToday) {
+  if (t.id === editingTodoId) {
     return `
-      <label class="todo-row ${t.done ? 'done' : ''}">
-        <input type="checkbox" data-todo-toggle="${t.id}" ${t.done ? 'checked' : ''}>
-        <span class="badge ${CATEGORY_BADGE[t.category] || 'badge-muted'}">${CATEGORY_LABEL[t.category] || t.category}</span>
-        <span>${escapeHtml(t.content)}</span>
-        <button type="button" class="card-menu-btn" data-todo-menu-toggle="${t.id}">⋯</button>
-        <div class="card-menu-dropdown hidden" data-todo-menu="${t.id}">
-          <button type="button" data-todo-edit="${t.id}">수정</button>
-          <button type="button" data-todo-delete="${t.id}" data-deactivate>삭제</button>
-        </div>
-      </label>
+      <div class="todo-row">
+        <input type="text" class="edit-content" value="${escapeHtml(t.content)}" autocomplete="off" style="flex:1; padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+        <select class="edit-category" style="padding:.5em .7em; border:1.5px solid var(--border); border-radius:8px;">
+          <option value="personal" ${t.category === 'personal' ? 'selected' : ''}>개인</option>
+          <option value="pilates" ${t.category === 'pilates' ? 'selected' : ''}>필라테스</option>
+          <option value="swim" ${t.category === 'swim' ? 'selected' : ''}>수영</option>
+          <option value="study" ${t.category === 'study' ? 'selected' : ''}>공부</option>
+          <option value="workout" ${t.category === 'workout' ? 'selected' : ''}>수련</option>
+        </select>
+        <button type="button" class="btn btn-primary btn-sm" data-todo-save="${t.id}">저장</button>
+        <button type="button" class="btn btn-outline btn-sm" data-todo-cancel-edit>취소</button>
+      </div>
     `;
-  }).join('');
+  }
 
+  return `
+    <label class="todo-row ${isDoneToday ? 'done' : ''}">
+      <input type="checkbox" data-todo-toggle="${t.id}" data-is-daily="${t.is_daily}" ${isDoneToday ? 'checked' : ''}>
+      <span class="badge ${CATEGORY_BADGE[t.category] || 'badge-muted'}">${CATEGORY_LABEL[t.category] || t.category}</span>
+      <span>${escapeHtml(t.content)}</span>
+      <button type="button" class="card-menu-btn" data-todo-menu-toggle="${t.id}">⋯</button>
+      <div class="card-menu-dropdown hidden" data-todo-menu="${t.id}">
+        <button type="button" data-todo-edit="${t.id}">수정</button>
+        <button type="button" data-todo-delete="${t.id}" data-deactivate>삭제</button>
+      </div>
+    </label>
+  `;
+}
+
+function bindTodoRowEvents(listEl) {
   listEl.querySelectorAll('[data-todo-toggle]').forEach((checkbox) => {
     checkbox.addEventListener('change', async () => {
-      const { error } = await sb.from('todos').update({ done: checkbox.checked }).eq('id', checkbox.dataset.todoToggle);
+      const isDaily = checkbox.dataset.isDaily === 'true';
+      const payload = isDaily
+        ? { done_date: checkbox.checked ? currentDate : null }
+        : { done: checkbox.checked };
+      const { error } = await sb.from('todos').update(payload).eq('id', checkbox.dataset.todoToggle);
       if (error) {
         alert('처리에 실패했습니다: ' + error.message);
         return;
