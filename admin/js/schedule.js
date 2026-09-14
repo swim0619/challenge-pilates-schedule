@@ -422,8 +422,8 @@ async function loadSchedule() {
     (attendanceRows || []).forEach((a) => { attendanceByClassId[a.class_id] = a; });
   }
 
-  computeProjectedRemaining();
   computeFirstClassByMember();
+  computeProjectedRemaining();
   renderCurrentView();
 }
 
@@ -455,8 +455,14 @@ function computeProjectedRemaining() {
     const pass = member && member.activePasses[0];
     if (!pass) return;
 
+    // 체험수업처럼 이 이용권을 사기 전에 잡혀있던 수업(또는 이용권 구매 당일의 체험수업 그 자체)은
+    // 이 이용권 횟수를 소진하지 않으므로 제외한다.
+    const classesUnderPass = byMember[memberId].filter((c) =>
+      c.class_date >= pass.purchased_at && c.id !== firstClassIdByMember[memberId]
+    );
+
     let counter = 0;
-    byMember[memberId].forEach((c) => { // allClasses is already ordered by class_date, start_time
+    classesUnderPass.forEach((c) => { // allClasses is already ordered by class_date, start_time
       if (!c.absent) counter++;
       projectedRemainingByClassId[c.id] = pass.remaining_sessions - counter;
     });
