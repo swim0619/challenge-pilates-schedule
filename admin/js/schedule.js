@@ -619,11 +619,12 @@ function renderMonthView() {
             <div class="date-num">${cellDate.getDate()}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</div>
             ${dayClasses.map((c) => {
               const pillCheckedIn = !!attendanceByClassId[c.id];
-              const pillPersonalDone = !c.member_id && c.completed;
+              const pillPersonal = !c.member_id;
+              const pillPersonalDone = pillPersonal && c.completed;
               const pillMember = c.member_id ? membersById[c.member_id] : null;
               const pillTrial = pillMember && pillMember.status === 'trial';
               return `
-              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
+              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonal ? 'personal' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
             `;
             }).join('')}
           </div>

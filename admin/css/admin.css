@@ -481,6 +481,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .class-pill.cancelled { text-decoration: line-through; opacity: .5; }
 .class-pill.absent { background: #ece4f7; color: var(--navy-dark); }
 .class-pill.trial { border: 1.5px solid #2854a6; }
+.class-pill.personal { border: 1.5px solid var(--personal-done); }
 
 /* ===== Utility ===== */
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
