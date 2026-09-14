@@ -26,6 +26,7 @@ let instructorOptions = [];
 let membersById = {};
 let allClasses = [];
 let attendanceByClassId = {};
+let projectedRemainingByClassId = {};
 let currentView = 'week';
 let weekCursor = mondayOf(new Date());
 let monthCursor = new Date();
@@ -420,7 +421,31 @@ async function loadSchedule() {
     (attendanceRows || []).forEach((a) => { attendanceByClassId[a.class_id] = a; });
   }
 
+  computeProjectedRemaining();
   renderCurrentView();
+}
+
+// 아직 출석 처리 안 된(예정) 수업들에 대해 "이 수업까지 진행하면 잔여가 몇 회 남는지"를 미리 계산해둔다.
+// 결석 처리된 수업은 횟수를 소진하지 않으므로 카운터를 증가시키지 않는다.
+function computeProjectedRemaining() {
+  projectedRemainingByClassId = {};
+  const byMember = {};
+  allClasses.forEach((c) => {
+    if (!c.member_id || c.cancelled || attendanceByClassId[c.id]) return;
+    (byMember[c.member_id] = byMember[c.member_id] || []).push(c);
+  });
+
+  Object.keys(byMember).forEach((memberId) => {
+    const member = membersById[memberId];
+    const pass = member && member.activePasses[0];
+    if (!pass) return;
+
+    let counter = 0;
+    byMember[memberId].forEach((c) => { // allClasses is already ordered by class_date, start_time
+      if (!c.absent) counter++;
+      projectedRemainingByClassId[c.id] = pass.remaining_sessions - counter;
+    });
+  });
 }
 
 function renderCurrentView() {
@@ -468,9 +493,11 @@ function classCardHtml(c) {
   }
 
   const primaryPass = member && member.activePasses[0];
-  const usedSessions = primaryPass ? primaryPass.total_sessions - primaryPass.remaining_sessions : null;
+  const projectedRemaining = projectedRemainingByClassId[c.id];
+  const displayRemaining = primaryPass ? (projectedRemaining !== undefined ? projectedRemaining : primaryPass.remaining_sessions) : null;
+  const displayUsed = primaryPass ? primaryPass.total_sessions - displayRemaining : null;
   const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(primaryPass.remaining_sessions)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${usedSessions}·잔여 ${primaryPass.remaining_sessions}회</span>`
+    ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
   const statusBadge = member ? memberStatusBadgeHtml(member) : '';
 
@@ -593,8 +620,10 @@ function renderMonthView() {
             ${dayClasses.map((c) => {
               const pillCheckedIn = !!attendanceByClassId[c.id];
               const pillPersonalDone = !c.member_id && c.completed;
+              const pillMember = c.member_id ? membersById[c.member_id] : null;
+              const pillTrial = pillMember && pillMember.status === 'trial';
               return `
-              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
+              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
             `;
             }).join('')}
           </div>
