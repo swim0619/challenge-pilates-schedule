@@ -27,6 +27,7 @@ let membersById = {};
 let allClasses = [];
 let attendanceByClassId = {};
 let projectedRemainingByClassId = {};
+let firstClassIdByMember = {};
 let currentView = 'week';
 let weekCursor = mondayOf(new Date());
 let monthCursor = new Date();
@@ -422,7 +423,21 @@ async function loadSchedule() {
   }
 
   computeProjectedRemaining();
+  computeFirstClassByMember();
   renderCurrentView();
+}
+
+// 각 회원의 실제 첫 수업(=체험수업)이 무엇인지 기억해둔다. allClasses가 이미
+// class_date/start_time 순으로 정렬돼 있으므로 각 회원별로 처음 만나는 수업이 곧 첫 수업이다.
+// 정회원으로 전환된 뒤에도 그 첫 수업만큼은 계속 체험수업으로 표시하기 위함.
+function computeFirstClassByMember() {
+  firstClassIdByMember = {};
+  allClasses.forEach((c) => {
+    if (!c.member_id) return;
+    if (!firstClassIdByMember[c.member_id]) {
+      firstClassIdByMember[c.member_id] = c.id;
+    }
+  });
 }
 
 // 아직 출석 처리 안 된(예정) 수업들에 대해 "이 수업까지 진행하면 잔여가 몇 회 남는지"를 미리 계산해둔다.
@@ -456,11 +471,11 @@ function renderCurrentView() {
   }
 }
 
-function memberStatusBadgeHtml(member) {
+function memberStatusBadgeHtml(member, isTrialClass) {
   if (member.status === 'withdrawn') {
     return '<span class="badge badge-muted" style="padding:.1em .4em; font-size:.72rem;">탈퇴</span>';
   }
-  if (member.status === 'trial') {
+  if (member.status === 'trial' || isTrialClass) {
     return '<span class="badge badge-info" style="padding:.1em .4em; font-size:.72rem;">체험수업</span>';
   }
   return '';
@@ -499,7 +514,8 @@ function classCardHtml(c) {
   const remainingBadge = primaryPass
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
-  const statusBadge = member ? memberStatusBadgeHtml(member) : '';
+  const isTrial = !!member && (member.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
+  const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
 
   const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
   const unresolvedBadge = isUnresolved
@@ -512,7 +528,6 @@ function classCardHtml(c) {
 
   const isPersonalDone = !c.member_id && c.completed;
   const isPersonal = !c.member_id;
-  const isTrial = member && member.status === 'trial';
   return `
     <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''}">
       <div class="card-menu owner-only">
@@ -622,7 +637,7 @@ function renderMonthView() {
               const pillPersonal = !c.member_id;
               const pillPersonalDone = pillPersonal && c.completed;
               const pillMember = c.member_id ? membersById[c.member_id] : null;
-              const pillTrial = pillMember && pillMember.status === 'trial';
+              const pillTrial = !!pillMember && (pillMember.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
               return `
               <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonal ? 'personal' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
             `;
