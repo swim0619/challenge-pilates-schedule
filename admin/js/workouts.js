@@ -1,4 +1,5 @@
 let currentMemberId = null;
+let editingLogId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   const auth = await guardPage();
@@ -126,18 +127,94 @@ async function loadLogs() {
     return;
   }
 
-  tbody.innerHTML = data.map((log) => `
+  tbody.innerHTML = data.map((log) => {
+    if (log.id === editingLogId) {
+      return `
+        <tr>
+          <td><input type="date" class="edit-log-date" value="${log.log_date}" style="width:140px;"></td>
+          <td>
+            <select class="edit-log-pain">
+              <option value="" ${log.pain_level === null ? 'selected' : ''}>체크 안 함</option>
+              <option value="0" ${log.pain_level === 0 ? 'selected' : ''}>0 - 없음</option>
+              <option value="1" ${log.pain_level === 1 ? 'selected' : ''}>1 - 아주 약함</option>
+              <option value="2" ${log.pain_level === 2 ? 'selected' : ''}>2 - 약함</option>
+              <option value="3" ${log.pain_level === 3 ? 'selected' : ''}>3 - 보통</option>
+              <option value="4" ${log.pain_level === 4 ? 'selected' : ''}>4 - 심함</option>
+              <option value="5" ${log.pain_level === 5 ? 'selected' : ''}>5 - 매우 심함</option>
+            </select>
+          </td>
+          <td><textarea class="edit-log-content" style="width:100%; min-height:100px;">${escapeHtml(log.content)}</textarea></td>
+          <td style="display:flex; flex-direction:column; gap:6px;">
+            <button class="btn btn-primary btn-sm" data-save-log="${log.id}" type="button">저장</button>
+            <button class="btn btn-outline btn-sm" data-cancel-edit-log type="button">취소</button>
+          </td>
+        </tr>
+      `;
+    }
+    return `
     <tr>
       <td>${log.log_date}</td>
       <td>${painBadge(log.pain_level)}</td>
       <td>${formatContent(log.content)}</td>
-      <td><button class="btn btn-danger btn-sm" data-delete-log="${log.id}" type="button">삭제</button></td>
+      <td style="display:flex; flex-direction:column; gap:6px;">
+        <button class="btn btn-outline btn-sm" data-edit-log="${log.id}" type="button">수정</button>
+        <button class="btn btn-danger btn-sm" data-delete-log="${log.id}" type="button">삭제</button>
+      </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 
   tbody.querySelectorAll('[data-delete-log]').forEach((btn) => {
     btn.addEventListener('click', () => deleteLog(btn.dataset.deleteLog));
   });
+
+  tbody.querySelectorAll('[data-edit-log]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingLogId = btn.dataset.editLog;
+      loadLogs();
+    });
+  });
+
+  tbody.querySelectorAll('[data-cancel-edit-log]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      editingLogId = null;
+      loadLogs();
+    });
+  });
+
+  tbody.querySelectorAll('[data-save-log]').forEach((btn) => {
+    btn.addEventListener('click', () => saveLog(btn.dataset.saveLog));
+  });
+}
+
+async function saveLog(id) {
+  const row = document.querySelector(`[data-save-log="${id}"]`).closest('tr');
+  const logDate = row.querySelector('.edit-log-date').value;
+  const painValue = row.querySelector('.edit-log-pain').value;
+  const content = row.querySelector('.edit-log-content').value.trim();
+
+  if (!logDate) {
+    alert('날짜를 입력해주세요.');
+    return;
+  }
+  if (!content) {
+    alert('내용을 입력해주세요.');
+    return;
+  }
+
+  const { error } = await sb.from('workout_logs').update({
+    log_date: logDate,
+    pain_level: painValue === '' ? null : Number(painValue),
+    content,
+  }).eq('id', id);
+
+  if (error) {
+    alert('수정에 실패했습니다: ' + error.message);
+    return;
+  }
+
+  editingLogId = null;
+  await loadLogs();
 }
 
 async function deleteLog(id) {
