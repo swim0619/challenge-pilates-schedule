@@ -164,6 +164,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
+    if (currentMemberData && currentMemberData.status === 'trial') {
+      await sb.from('members').update({ status: 'active' }).eq('id', currentMemberId);
+    }
+
     form.reset();
     await selectMember(currentMemberId);
     await loadMembers(document.getElementById('search-input').value.trim());
