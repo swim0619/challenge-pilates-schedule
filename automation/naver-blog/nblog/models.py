@@ -47,7 +47,8 @@ class Block:
 class Post:
     title: str
     blocks: List[Block]
-    tags: List[str] = dataclasses.field(default_factory=list)
+    tags: List[str] = dataclasses.field(default_factory=list)        # 숏테일 (짧고 검색량 큰 말)
+    long_tags: List[str] = dataclasses.field(default_factory=list)   # 롱테일 (구체적인 긴 말)
     topic: str = ""
     summary: str = ""
     sources: List[Source] = dataclasses.field(default_factory=list)
@@ -59,6 +60,7 @@ class Post:
             "topic": self.topic,
             "summary": self.summary,
             "tags": self.tags,
+            "long_tags": self.long_tags,
             "blocks": [dataclasses.asdict(b) for b in self.blocks],
             "sources": [dataclasses.asdict(s) for s in self.sources],
         }
@@ -70,6 +72,7 @@ class Post:
             topic=d.get("topic", ""),
             summary=d.get("summary", ""),
             tags=list(d.get("tags") or []),
+            long_tags=list(d.get("long_tags") or []),
             blocks=[Block(**b) for b in d.get("blocks") or []],
             sources=[Source(**s) for s in d.get("sources") or []],
         )
@@ -78,6 +81,14 @@ class Post:
         path.write_text(
             json.dumps(self.to_dict(), ensure_ascii=False, indent=2), encoding="utf-8"
         )
+
+    def all_tags(self):
+        """본문 끝에 넣을 태그 전체 (숏테일 먼저, 그 다음 롱테일)."""
+        seen, out = set(), []
+        for t in list(self.tags) + list(self.long_tags):
+            if t and t not in seen:
+                seen.add(t); out.append(t)
+        return out
 
     def to_markdown(self):
         """사람이 눈으로 확인하는 미리보기용."""
@@ -104,5 +115,7 @@ class Post:
             elif b.type == "place":
                 out += ["📍 %s" % b.place, ""]
         if self.tags:
-            out += ["", " ".join("#" + t for t in self.tags)]
+            out += ["", "**숏테일**", " ".join("#" + t for t in self.tags)]
+        if self.long_tags:
+            out += ["", "**롱테일**", " ".join("#" + t for t in self.long_tags)]
         return "\n".join(out).strip() + "\n"
