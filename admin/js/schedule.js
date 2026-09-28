@@ -28,7 +28,6 @@ let allClasses = [];
 let attendanceByClassId = {};
 let attendanceRankByClassId = {};
 let projectedRemainingByClassId = {};
-let firstClassIdByMember = {};
 let currentView = 'week';
 let weekCursor = mondayOf(new Date());
 let monthCursor = new Date();
@@ -175,6 +174,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         class_date: classDate,
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
         paid: form.paid.checked,
+        is_trial: form.class_is_trial.checked,
       }).eq('id', id));
 
       if (memberId) existingSlots.add(`${memberId}|${classDate}|${startTime}`);
@@ -226,6 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           class_date: rowDate,
           day_of_week: d.getDay(),
           paid: i === 0 ? form.paid.checked : false, // 결제일은 첫 수업에만, 반복 복사본엔 안 붙인다
+          is_trial: i === 0 ? (form.class_is_trial.checked || form.is_trial.checked) : false,
         });
       }
 
@@ -406,7 +407,7 @@ async function loadMemberOptions() {
 async function loadSchedule() {
   const { data, error } = await sb
     .from('classes')
-    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, absent, paid, instructor:profiles(id, name)')
+    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, absent, paid, is_trial, instructor:profiles(id, name)')
     .eq('active', true)
     .order('class_date')
     .order('start_time');
@@ -427,7 +428,6 @@ async function loadSchedule() {
     (attendanceRows || []).forEach((a) => { attendanceByClassId[a.class_id] = a; });
   }
 
-  computeFirstClassByMember();
   computeAttendanceRank();
   computeProjectedRemaining();
   renderCurrentView();
@@ -450,19 +450,6 @@ function computeAttendanceRank() {
   });
 }
 
-// 각 회원의 실제 첫 수업(=체험수업)이 무엇인지 기억해둔다. allClasses가 이미
-// class_date/start_time 순으로 정렬돼 있으므로 각 회원별로 처음 만나는 수업이 곧 첫 수업이다.
-// 정회원으로 전환된 뒤에도 그 첫 수업만큼은 계속 체험수업으로 표시하기 위함.
-function computeFirstClassByMember() {
-  firstClassIdByMember = {};
-  allClasses.forEach((c) => {
-    if (!c.member_id) return;
-    if (!firstClassIdByMember[c.member_id]) {
-      firstClassIdByMember[c.member_id] = c.id;
-    }
-  });
-}
-
 // 아직 출석 처리 안 된(예정) 수업들에 대해 "이 수업까지 진행하면 잔여가 몇 회 남는지"를 미리 계산해둔다.
 // 결석 처리된 수업은 횟수를 소진하지 않으므로 카운터를 증가시키지 않는다.
 function computeProjectedRemaining() {
@@ -478,10 +465,10 @@ function computeProjectedRemaining() {
     const pass = member && member.activePasses[0];
     if (!pass) return;
 
-    // 체험수업처럼 이 이용권을 사기 전에 잡혀있던 수업(또는 이용권 구매 당일의 체험수업 그 자체)은
+    // 체험수업(명시적으로 체크된 수업)처럼 이 이용권을 사기 전에 잡혀있던 수업은
     // 이 이용권 횟수를 소진하지 않으므로 제외한다.
     const classesUnderPass = byMember[memberId].filter((c) =>
-      c.class_date >= pass.purchased_at && c.id !== firstClassIdByMember[memberId]
+      c.class_date >= pass.purchased_at && !c.is_trial
     );
 
     let counter = 0;
@@ -555,7 +542,7 @@ function classCardHtml(c) {
   const remainingBadge = displayPass
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
-  const isTrial = !!member && (member.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
+  const isTrial = !!member && (member.status === 'trial' || !!c.is_trial);
   const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
 
   const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
@@ -678,7 +665,7 @@ function renderMonthView() {
               const pillPersonal = !c.member_id;
               const pillPersonalDone = pillPersonal && c.completed;
               const pillMember = c.member_id ? membersById[c.member_id] : null;
-              const pillTrial = !!pillMember && (pillMember.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
+              const pillTrial = !!pillMember && (pillMember.status === 'trial' || !!c.is_trial);
               return `
               <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonal ? 'personal' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}${c.paid ? ' (결제일)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
             `;
@@ -838,6 +825,7 @@ function openEdit(id, classes) {
   form.is_trial.checked = false;
   updateTrialFieldsVisibility(form);
   form.paid.checked = !!c.paid;
+  form.class_is_trial.checked = !!c.is_trial;
   form.repeat_weekly.checked = false;
   document.getElementById('repeat-weeks-field').classList.add('hidden');
   document.getElementById('unrepeat-field').classList.toggle('hidden', !c.member_id);
