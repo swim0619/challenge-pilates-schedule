@@ -26,6 +26,7 @@ let instructorOptions = [];
 let membersById = {};
 let allClasses = [];
 let attendanceByClassId = {};
+let attendanceRankByClassId = {};
 let projectedRemainingByClassId = {};
 let firstClassIdByMember = {};
 let currentView = 'week';
@@ -427,8 +428,26 @@ async function loadSchedule() {
   }
 
   computeFirstClassByMember();
+  computeAttendanceRank();
   computeProjectedRemaining();
   renderCurrentView();
+}
+
+// 출석 완료된 수업이 "그 이용권 안에서 몇 번째로 사용됐는지"를 계산해둔다.
+// activePasses[0](현재 이용권) 하나로만 보여주면 지난주·이번주가 항상 똑같은 최종값으로
+// 보이는 문제가 있어서, 이용권별로 실제 체크인 순서를 따로 매긴다.
+// allClasses 가 이미 class_date/start_time 순이라 pass_id 별로 묶기만 하면 순서가 그대로 유지된다.
+function computeAttendanceRank() {
+  attendanceRankByClassId = {};
+  const byPass = {};
+  allClasses.forEach((c) => {
+    const att = attendanceByClassId[c.id];
+    if (!att) return;
+    (byPass[att.pass_id] = byPass[att.pass_id] || []).push(c.id);
+  });
+  Object.values(byPass).forEach((classIds) => {
+    classIds.forEach((classId, i) => { attendanceRankByClassId[classId] = i + 1; });
+  });
 }
 
 // 각 회원의 실제 첫 수업(=체험수업)이 무엇인지 기억해둔다. allClasses가 이미
@@ -524,10 +543,15 @@ function classCardHtml(c) {
   const usedPass = checkedIn && member ? (member.allPasses || []).find((p) => p.id === attendance.pass_id) : null;
   const displayPass = usedPass || primaryPass;
   const projectedRemaining = projectedRemainingByClassId[c.id];
-  const displayRemaining = displayPass
-    ? (usedPass ? usedPass.remaining_sessions : (projectedRemaining !== undefined ? projectedRemaining : displayPass.remaining_sessions))
+  // 출석 완료된 수업은 "지금 잔여횟수"가 아니라, 그 이용권 안에서 몇 번째 체크인이었는지를 써서
+  // 그날 실제로 몇 회가 남아있었는지를 보여준다 (그래야 지난주/이번주가 서로 달라 보인다).
+  const attendanceRank = checkedIn ? attendanceRankByClassId[c.id] : undefined;
+  const displayUsed = displayPass
+    ? (usedPass && attendanceRank !== undefined
+        ? attendanceRank
+        : displayPass.total_sessions - (projectedRemaining !== undefined ? projectedRemaining : displayPass.remaining_sessions))
     : null;
-  const displayUsed = displayPass ? displayPass.total_sessions - displayRemaining : null;
+  const displayRemaining = displayPass ? displayPass.total_sessions - displayUsed : null;
   const remainingBadge = displayPass
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
