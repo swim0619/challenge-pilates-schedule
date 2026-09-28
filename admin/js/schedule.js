@@ -523,14 +523,13 @@ function classCardHtml(c) {
   // 수업까지 전부 최신 이용권 숫자로 덮어써져 보이는 문제가 있었다.)
   const usedPass = checkedIn && member ? (member.allPasses || []).find((p) => p.id === attendance.pass_id) : null;
   const displayPass = usedPass || primaryPass;
-  const passNumber = displayPass && member ? (member.allPasses || []).findIndex((p) => p.id === displayPass.id) + 1 : 0;
   const projectedRemaining = projectedRemainingByClassId[c.id];
   const displayRemaining = displayPass
     ? (usedPass ? usedPass.remaining_sessions : (projectedRemaining !== undefined ? projectedRemaining : displayPass.remaining_sessions))
     : null;
   const displayUsed = displayPass ? displayPass.total_sessions - displayRemaining : null;
   const remainingBadge = displayPass
-    ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">${passNumber > 0 ? passNumber + '번·' : ''}진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
+    ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
   const isTrial = !!member && (member.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
   const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
