@@ -388,10 +388,12 @@ async function loadMemberOptions() {
 
   membersById = {};
   (data || []).forEach((m) => {
-    const activePasses = (m.session_passes || [])
-      .filter((p) => p.active && p.remaining_sessions > 0)
+    // 소진돼서(remaining=0) activePasses 에서 빠진 이용권도 "몇 번째 이용권인지" 표시하려면 필요하다.
+    const allPasses = (m.session_passes || [])
+      .slice()
       .sort((a, b) => (a.purchased_at < b.purchased_at ? -1 : 1));
-    membersById[m.id] = { name: m.name, status: m.status, created_at: m.created_at, activePasses };
+    const activePasses = allPasses.filter((p) => p.active && p.remaining_sessions > 0);
+    membersById[m.id] = { name: m.name, status: m.status, created_at: m.created_at, activePasses, allPasses };
   });
 
   const select = document.querySelector('select[name="member_id"]');
@@ -516,11 +518,19 @@ function classCardHtml(c) {
   }
 
   const primaryPass = member && member.activePasses[0];
+  // 출석 완료된 수업은 실제로 그때 차감된 이용권(attendance.pass_id) 기준으로 보여준다.
+  // (member.activePasses[0] 은 "현재" 유효한 이용권이라, 이미 소진된 옛날 이용권으로 처리된
+  // 수업까지 전부 최신 이용권 숫자로 덮어써져 보이는 문제가 있었다.)
+  const usedPass = checkedIn && member ? (member.allPasses || []).find((p) => p.id === attendance.pass_id) : null;
+  const displayPass = usedPass || primaryPass;
+  const passNumber = displayPass && member ? (member.allPasses || []).findIndex((p) => p.id === displayPass.id) + 1 : 0;
   const projectedRemaining = projectedRemainingByClassId[c.id];
-  const displayRemaining = primaryPass ? (projectedRemaining !== undefined ? projectedRemaining : primaryPass.remaining_sessions) : null;
-  const displayUsed = primaryPass ? primaryPass.total_sessions - displayRemaining : null;
-  const remainingBadge = primaryPass
-    ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
+  const displayRemaining = displayPass
+    ? (usedPass ? usedPass.remaining_sessions : (projectedRemaining !== undefined ? projectedRemaining : displayPass.remaining_sessions))
+    : null;
+  const displayUsed = displayPass ? displayPass.total_sessions - displayRemaining : null;
+  const remainingBadge = displayPass
+    ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">${passNumber > 0 ? passNumber + '번·' : ''}진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
   const isTrial = !!member && (member.status === 'trial' || firstClassIdByMember[c.member_id] === c.id);
   const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
