@@ -507,10 +507,19 @@ function classCardHtml(c) {
   const checkedIn = !!attendance;
   const member = c.member_id ? membersById[c.member_id] : null;
   const hasPass = member && member.activePasses.length > 0;
+  const isTrial = !!member && (member.status === 'trial' || !!c.is_trial);
 
   let attendanceBtn = '';
   if (c.cancelled) {
     attendanceBtn = `<span class="badge badge-muted">취소됨</span>`;
+  } else if (c.member_id && isTrial) {
+    // 체험수업은 이용권 잔여횟수를 건드리지 않도록 출석(attendance)이 아니라 완료 플래그만 사용
+    attendanceBtn = `
+      <label class="attend-check">
+        <input type="checkbox" data-complete-toggle="${c.id}" ${c.completed ? 'checked' : ''}>
+        <span>완료</span>
+      </label>
+    `;
   } else if (c.member_id) {
     const disabled = !checkedIn && !hasPass;
     attendanceBtn = `
@@ -547,7 +556,6 @@ function classCardHtml(c) {
   const remainingBadge = displayPass
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
-  const isTrial = !!member && (member.status === 'trial' || !!c.is_trial);
   const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
 
   const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
@@ -559,7 +567,7 @@ function classCardHtml(c) {
     ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor.name}</small>`
     : (c.member_id ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">미배정</small>` : '');
 
-  const isPersonalDone = !c.member_id && c.completed;
+  const isPersonalDone = (!c.member_id || isTrial) && c.completed;
   const isPersonal = !c.member_id;
   return `
     <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''}"${c.paid ? ' title="결제일"' : ''}>
