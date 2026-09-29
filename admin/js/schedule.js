@@ -567,7 +567,7 @@ function classCardHtml(c) {
     ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">${c.instructor.name}</small>`
     : (c.member_id ? ` <small style="font-weight:400; font-size:.72rem; color:var(--text-muted);">미배정</small>` : '');
 
-  const isPersonalDone = (!c.member_id || isTrial) && c.completed;
+  const isPersonalDone = !c.member_id && c.completed;
   const isPersonal = !c.member_id;
   return `
     <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''}"${c.paid ? ' title="결제일"' : ''}>
