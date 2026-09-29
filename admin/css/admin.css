@@ -424,6 +424,8 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .week-class.unresolved { box-shadow: 0 0 0 2px var(--warning) inset, var(--shadow); }
 .week-class.personal { border: 2px solid var(--personal-done); }
 .week-class.trial { border: 2px solid #2854a6; }
+/* 결제일: 다른 테두리(체험 파랑/개인 초록)와 겹쳐도 보이도록 outline 사용 */
+.week-class.paid-day { outline: 3px solid #e53935; outline-offset: 0; }
 .week-class .time { font-weight: 700; color: var(--navy-dark); display: block; font-size: .85rem; }
 .week-class .title { display: block; margin: .2em 0; font-weight: 600; }
 .week-class .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
@@ -479,6 +481,10 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .class-pill.checked-in { background: var(--checkin-bg); color: var(--navy-dark); }
 .class-pill.personal-done { background: var(--personal-done-bg); color: var(--navy-dark); }
 .class-pill.cancelled { text-decoration: line-through; opacity: .5; }
+.class-pill.absent { background: #ece4f7; color: var(--navy-dark); }
+.class-pill.trial { border: 1.5px solid #2854a6; }
+.class-pill.personal { border: 1.5px solid var(--personal-done); }
+.class-pill.paid-day { outline: 2px solid #e53935; outline-offset: 0; }
 
 /* ===== Utility ===== */
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

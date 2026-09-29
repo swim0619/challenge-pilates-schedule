@@ -85,13 +85,22 @@ async function loadPeriodStats(today) {
   weekEndDate.setDate(weekEndDate.getDate() + 6);
   const weekEnd = toDateStr(weekEndDate);
 
+  const lastWeekStartDate = mondayOf(today);
+  lastWeekStartDate.setDate(lastWeekStartDate.getDate() - 7);
+  const lastWeekStart = toDateStr(lastWeekStartDate);
+  const lastWeekEndDate = mondayOf(today);
+  lastWeekEndDate.setDate(lastWeekEndDate.getDate() - 1);
+  const lastWeekEnd = toDateStr(lastWeekEndDate);
+
   const monthStart = todayStr().slice(0, 7) + '-01';
   const monthEndDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
   const monthEnd = toDateStr(monthEndDate);
 
-  const [weekDone, weekCancelled, weekAbsent, monthDone] = await Promise.all([
+  const [weekDone, lastWeekDone, weekCancelled, weekAbsent, monthDone] = await Promise.all([
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', weekStart).lte('session_date', weekEnd),
+    sb.from('attendance').select('id', { count: 'exact', head: true })
+      .gte('session_date', lastWeekStart).lte('session_date', lastWeekEnd),
     sb.from('classes').select('id', { count: 'exact', head: true })
       .eq('cancelled', true).gte('class_date', weekStart).lte('class_date', weekEnd),
     sb.from('classes').select('id', { count: 'exact', head: true })
@@ -99,6 +108,8 @@ async function loadPeriodStats(today) {
     sb.from('attendance').select('id', { count: 'exact', head: true })
       .gte('session_date', monthStart).lte('session_date', monthEnd),
   ]);
+
+  document.getElementById('stat-last-week-done').textContent = (lastWeekDone.count || 0) + '회';
 
   document.getElementById('stat-week-done').textContent = (weekDone.count || 0) + '회';
   document.getElementById('stat-week-cancelled').textContent = (weekCancelled.count || 0) + '회';
