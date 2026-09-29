@@ -118,12 +118,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('체험 회원 이름을 입력해주세요.');
         return;
       }
+      const trialDayOfWeek = new Date(classDate + 'T00:00:00').getDay();
+      const [trialHour, trialMinute] = startTime.split(':').map(Number);
+      const preferredSchedule = `${DAY_LABELS[trialDayOfWeek]}${trialHour}시${trialMinute ? trialMinute + '분' : ''}`;
+
       const { data: newMember, error: memberError } = await sb
         .from('members')
         .insert({
           name: trialName,
           phone: form.trial_phone.value.trim() || null,
           status: 'trial',
+          preferred_schedule: preferredSchedule,
         })
         .select()
         .single();
