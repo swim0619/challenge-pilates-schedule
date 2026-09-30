@@ -118,12 +118,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         alert('체험 회원 이름을 입력해주세요.');
         return;
       }
+      const trialDayOfWeek = new Date(classDate + 'T00:00:00').getDay();
+      const [trialHour, trialMinute] = startTime.split(':').map(Number);
+      const preferredSchedule = `${DAY_LABELS[trialDayOfWeek]}${trialHour}시${trialMinute ? trialMinute + '분' : ''}`;
+
       const { data: newMember, error: memberError } = await sb
         .from('members')
         .insert({
           name: trialName,
           phone: form.trial_phone.value.trim() || null,
           status: 'trial',
+          preferred_schedule: preferredSchedule,
         })
         .select()
         .single();
@@ -502,10 +507,19 @@ function classCardHtml(c) {
   const checkedIn = !!attendance;
   const member = c.member_id ? membersById[c.member_id] : null;
   const hasPass = member && member.activePasses.length > 0;
+  const isTrial = !!member && (member.status === 'trial' || !!c.is_trial);
 
   let attendanceBtn = '';
   if (c.cancelled) {
     attendanceBtn = `<span class="badge badge-muted">취소됨</span>`;
+  } else if (c.member_id && isTrial) {
+    // 체험수업은 이용권 잔여횟수를 건드리지 않도록 출석(attendance)이 아니라 완료 플래그만 사용
+    attendanceBtn = `
+      <label class="attend-check">
+        <input type="checkbox" data-complete-toggle="${c.id}" ${c.completed ? 'checked' : ''}>
+        <span>완료</span>
+      </label>
+    `;
   } else if (c.member_id) {
     const disabled = !checkedIn && !hasPass;
     attendanceBtn = `
@@ -542,7 +556,6 @@ function classCardHtml(c) {
   const remainingBadge = displayPass
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
-  const isTrial = !!member && (member.status === 'trial' || !!c.is_trial);
   const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
 
   const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();

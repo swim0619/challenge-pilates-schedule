@@ -13,16 +13,18 @@ MOD = "Meta" if sys.platform == "darwin" else "Control"
 # 여러 코드포인트가 결합된 이모지(예: 🧘‍♀️)는 타이핑 중 깨지므로 단일 문자만 쓴다
 HEAD_SIZE = "19"   # 소제목 글자 크기
 BODY_SIZE = "15"   # 본문 글자 크기
-HEAD_STYLE = "라인&따옴표"   # 소제목에 쓸 인용구 스타일
+HEAD_STYLE = "따옴표"        # 소제목 인용구 스타일 (인용구1: 위 66 / 아래 99, 가운데 기울임)
 HEAD_EMOJI_ON = False       # 인용구 소제목에는 이모지를 쓰지 않는다
 ALIGN = "center"            # 본문 정렬 (모바일 가독성)
 DEVICE_MODE = "mobile"      # 글 쓰기 전에 에디터를 이 화면으로 바꾼다
-QUOTE_BOLD = True           # 인용구(소제목) 글자를 굵게
+QUOTE_BOLD = False          # 인용구1 은 스타일 자체가 기울임이라 굵게는 쓰지 않는다
 # 모바일 본문 폭(360px) 기준. 딱 맞추기보다 말의 흐름에서 끊는다.
-LINE_MIN, LINE_MAX = 10, 20
+LINE_MIN, LINE_MAX = 10, 22   # 모바일 360px 에 15~16px 글씨가 한 줄 22자 안팎 들어간다
 BLANK_LINE = True           # 문장 흐름이 바뀌는 자리에 한 줄 띄기
 QUOTE_LEAD_BLANK = 2        # 인용구(소제목) 앞에 띄울 줄 수
 MENU_STYLE = "프레임"         # 메뉴·가격 목록을 담을 인용구 스타일
+INFO_STYLE = "포스트잇"        # 주소·영업시간 같은 이용정보를 담을 인용구 스타일
+IMAGE_CAPTION_ON = False    # 벤치마크 블로그는 캡션을 쓰지 않고 사진 아래 본문으로 설명한다
 MENU_SIZE = "16"            # 메뉴 목록 글자 크기
 MENU_BOLD = True            # 메뉴 목록 굵게
 MENU_ITALIC = True          # 메뉴 목록 기울이기
@@ -320,6 +322,12 @@ def write_post(ed, post, log=print):
                 _lead_blank(ed, idx)
                 _insert_quote(ed, block.text, style=block.style, log=log)
 
+            elif block.type == "info" and block.items:
+                # 주소·전화·영업시간 같은 이용정보를 메모지 박스에 세로로 나열한다
+                _lead_blank(ed, idx)
+                _insert_quote(ed, list(block.items), style=block.style or INFO_STYLE,
+                              log=log, bold=False, italic=False, size=BODY_SIZE)
+
             elif block.type == "menu" and block.items:
                 # 메뉴는 문장으로 풀지 않고 '이름  가격' 으로 나열해 프레임 안에 넣는다
                 _lead_blank(ed, idx)
@@ -354,10 +362,13 @@ def write_post(ed, post, log=print):
             ed.focus_end()
 
     # 태그는 '발행' 설정 화면에서만 입력할 수 있으므로 본문 끝에 적어둔다
-    if post.tags:
+    tags = post.all_tags() if hasattr(post, "all_tags") else list(post.tags)
+    if tags:
         ed.enter()
-        ed.type(" ".join("#" + t for t in post.tags))
-        log("· 태그 %d개를 본문 끝에 넣었습니다 (발행 시 태그란에 붙여넣기 하세요)" % len(post.tags))
+        ed.type(" ".join("#" + t for t in tags))
+        log("· 태그 %d개(숏테일 %d + 롱테일 %d)를 본문 끝에 넣었습니다 "
+            "(발행 시 태그란에 붙여넣기 하세요)"
+            % (len(tags), len(post.tags), len(getattr(post, "long_tags", []))))
 
 
 def _insert_images(ed, block, log=print):
@@ -390,7 +401,7 @@ def _insert_images(ed, block, log=print):
     log("  · 사진 %d장 삽입(%s): %s"
         % (len(files), block.layout, ", ".join(Path(f).name for f in files)))
 
-    caption = block.caption or ""
+    caption = block.caption if IMAGE_CAPTION_ON else ""
     if block.credit:
         caption = (caption + " (" + block.credit + ")").strip()
     if caption:
@@ -639,44 +650,71 @@ _CLAUSE_END = re.compile(
 _SOFT_END = re.compile(r"(?:고|서|며)$")
 
 
-def _is_break_point(word):
+# '~고 있다', '~고 싶다' 처럼 보조 용언이 뒤따르면 '~고' 에서 끊지 않는다
+_AUX_START = ("있", "싶", "계", "말", "보", "나서", "난", "놓", "두")
+
+
+def _is_break_point(word, next_word=None):
     if _CLAUSE_END.search(word):
         return True
-    return len(word) >= 3 and bool(_SOFT_END.search(word))
+    if len(word) >= 2 and _SOFT_END.search(word):
+        if word.endswith("고") and next_word and next_word.startswith(_AUX_START):
+            return False
+        return True
+    return False
 
 
 def _flow_lines(sentence, lo, hi):
     """한 문장을 말의 흐름에서 끊는다.
 
-    글자수를 정확히 맞추는 것보다 어절이 중간에 잘리지 않는 쪽을 우선한다.
-    hi 는 모바일 본문 폭에서 한 줄에 들어가는 대략의 한계이고,
-    그 안에서는 쉼표나 연결어미가 나오면 거기서 끊는다.
+    - 쉼표·연결어미(~는데, ~어서, ~고)가 나오면 거기서 끊는다
+    - 한 줄이 넘치면 줄 안의 마지막 끊김점으로 돌아가서 끊는다
+    - 넘치는 말 자체가 끊김점이면 앞 단어를 데리고 다음 줄로 간다
+    - '~고 있다' 처럼 붙어야 하는 말은 떼지 않는다
     """
     words = sentence.split()
-    lines, cur = [], []
-    for w in words:
+    nxt = lambda i: words[i + 1] if i + 1 < len(words) else None
+    lines, cur, cur_idx = [], [], []
+    for i, w in enumerate(words):
         if cur and _vis_len(" ".join(cur + [w])) > hi:
-            lines.append(" ".join(cur))
-            cur = [w]
-            continue
-        cur.append(w)
+            bp = None
+            for j in range(len(cur) - 1, -1, -1):
+                follow = cur[j + 1] if j + 1 < len(cur) else w
+                if _is_break_point(cur[j], follow) and _vis_len(" ".join(cur[:j + 1])) >= 6:
+                    bp = j
+                    break
+            if bp is not None and bp < len(cur) - 1:
+                lines.append(" ".join(cur[:bp + 1]))
+                cur = cur[bp + 1:] + [w]
+            elif _is_break_point(w, nxt(i)):
+                k = len(cur)
+                while k > 1 and _vis_len(" ".join(cur[k - 1:] + [w])) <= hi and \
+                        _vis_len(" ".join(cur[k - 1:] + [w])) < lo:
+                    k -= 1
+                if k < len(cur) and _vis_len(" ".join(cur[:k])) >= 6:
+                    lines.append(" ".join(cur[:k]))
+                    cur = cur[k:] + [w]
+                else:
+                    lines.append(" ".join(cur))
+                    cur = [w]
+            else:
+                lines.append(" ".join(cur))
+                cur = [w]
+        else:
+            cur.append(w)
         joined = " ".join(cur)
-        if _vis_len(joined) >= lo and _is_break_point(w):
+        if _vis_len(joined) >= lo and _is_break_point(cur[-1], nxt(i)):
             lines.append(joined)
             cur = []
     if cur:
         lines.append(" ".join(cur))
-    # 마지막 줄이 외톨이로 짧으면 앞줄에서 한 어절을 내려 균형을 맞춘다.
-    # (앞줄에 통째로 붙이면 모바일 폭을 넘어간다)
+    # 마지막 줄이 외톨이로 짧으면 앞줄에서 한 어절을 내려 균형을 맞춘다
     while len(lines) > 1 and _vis_len(lines[-1]) < lo - 2:
         prev = lines[-2].split()
-        if len(prev) < 2:
-            break
-        moved = prev[-1]
-        if _vis_len(" ".join(prev[:-1])) < 8:
+        if len(prev) < 2 or _vis_len(" ".join(prev[:-1])) < 8:
             break
         lines[-2] = " ".join(prev[:-1])
-        lines[-1] = moved + " " + lines[-1]
+        lines[-1] = prev[-1] + " " + lines[-1]
     return lines
 
 

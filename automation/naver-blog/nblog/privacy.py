@@ -22,10 +22,13 @@ def _scale_box(box, src_size, ref_size, pad):
     return tuple(int(round(v)) for v in (x0, y0, x1, y1))
 
 
-def pixelate(src, dst, boxes, ref_size, blocks=12, pad=0.12, quality=92):
+def pixelate(src, dst, boxes, ref_size, blocks=8, pad=0.12, quality=92):
     """boxes 영역을 모자이크 처리해 dst 에 저장한다.
 
-    blocks: 모자이크 한 변에 들어갈 칸 수. 작을수록 굵게(더 알아보기 어렵게) 뭉갠다.
+    blocks: 영역의 가로를 몇 칸으로 쪼갤지. **작을수록 굵게 뭉갠다**.
+      영역 크기와 무관하게 결과가 일정하다(8이면 어떤 크기든 가로 8칸).
+      번호판·얼굴은 8 이하를 쓸 것. 예전에 이 값을 '축소 배율'로 계산해서
+      4를 줬다가 겨우 4배만 축소돼 번호판이 그대로 읽힌 적이 있다.
     """
     im = ImageOps.exif_transpose(Image.open(src)).convert("RGB")
     for box in boxes:
@@ -34,10 +37,39 @@ def pixelate(src, dst, boxes, ref_size, blocks=12, pad=0.12, quality=92):
         if w < 2 or h < 2:
             continue
         region = im.crop((x0, y0, x1, y1))
-        small = region.resize((max(1, w // blocks), max(1, h // blocks)), Image.BILINEAR)
+        cols = max(1, min(blocks, w))
+        rows = max(1, int(round(cols * h / w)))
+        small = region.resize((cols, rows), Image.BILINEAR)
         im.paste(small.resize((w, h), Image.NEAREST), (x0, y0))
     Path(dst).parent.mkdir(parents=True, exist_ok=True)
     im.save(dst, quality=quality)
+    return dst
+
+
+def grid(src, dst, box=None, ref_side=760, step=20, scale=3):
+    """좌표 격자를 얹은 확대 이미지를 만든다.
+
+    번호판처럼 작은 것은 눈대중으로 좌표를 잡으면 어긋난다.
+    이걸로 한 번 보고 숫자를 읽어 pixelate 에 넣으면 한 번에 맞는다.
+    box 는 미리보기 좌표 기준으로 들여다볼 영역.
+    """
+    from PIL import ImageDraw
+
+    im = ImageOps.exif_transpose(Image.open(src))
+    im.thumbnail((ref_side, ref_side))
+    ox, oy = (box[0], box[1]) if box else (0, 0)
+    if box:
+        im = im.crop(box)
+    im = im.resize((im.width * scale, im.height * scale), Image.LANCZOS)
+    d = ImageDraw.Draw(im)
+    for gx in range(0, im.width, step * scale):
+        d.line([(gx, 0), (gx, im.height)], fill=(255, 0, 0), width=1)
+        d.text((gx + 2, 2), str(ox + gx // scale), fill=(255, 0, 0))
+    for gy in range(0, im.height, step * scale):
+        d.line([(0, gy), (im.width, gy)], fill=(0, 128, 255), width=1)
+        d.text((2, gy + 2), str(oy + gy // scale), fill=(0, 128, 255))
+    Path(dst).parent.mkdir(parents=True, exist_ok=True)
+    im.save(dst, quality=93)
     return dst
 
 

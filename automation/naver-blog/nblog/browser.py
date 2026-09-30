@@ -23,17 +23,41 @@ CHROME_PATHS = [
 
 
 def _cdp_alive():
+    """CDP 가 붙을 수 있는 상태인지. 탭이 하나도 없으면 붙을 수 없다.
+
+    창을 모두 닫으면 크롬 프로세스는 살아 있지만 page 타깃이 사라지고,
+    이때 connect_over_cdp 는 'Browser context management is not supported' 로 실패한다.
+    """
     try:
         requests.get(cfg.cdp_url + "/json/version", timeout=1.5)
-        return True
+    except Exception:
+        return False
+    try:
+        targets = requests.get(cfg.cdp_url + "/json/list", timeout=1.5).json()
+        return any(t.get("type") == "page" for t in targets)
     except Exception:
         return False
 
 
+def _kill_chrome():
+    """전용 프로필로 띄운 크롬만 종료한다 (평소 쓰는 크롬은 건드리지 않는다)."""
+    subprocess.run(["pkill", "-f", "user-data-dir=%s" % cfg.profile_dir],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(1.5)
+
+
 def ensure_chrome(log=print):
-    """CDP 포트가 안 열려 있으면 전용 프로필로 크롬을 띄운다."""
+    """CDP 로 붙을 수 있는 크롬을 준비한다. 없으면 전용 프로필로 띄운다."""
     if _cdp_alive():
         return False
+
+    # 프로세스는 살아 있는데 탭이 없는 상태면 그대로는 못 붙는다. 정리하고 새로 띄운다.
+    try:
+        requests.get(cfg.cdp_url + "/json/version", timeout=1.5)
+        log("· 크롬에 열린 탭이 없어 다시 띄웁니다")
+        _kill_chrome()
+    except Exception:
+        pass
 
     exe = next((p for p in CHROME_PATHS if os.path.exists(p)), None)
     if not exe:
