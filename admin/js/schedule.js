@@ -553,12 +553,13 @@ function classCardHtml(c) {
         : displayPass.total_sessions - (projectedRemaining !== undefined ? projectedRemaining : displayPass.remaining_sessions))
     : null;
   const displayRemaining = displayPass ? displayPass.total_sessions - displayUsed : null;
-  const remainingBadge = displayPass
+  // 체험수업은 이용권을 안 건드리니 진행/잔여 배지도 의미가 없다 - 파란 테두리로만 표시한다.
+  const remainingBadge = (!isTrial && displayPass)
     ? `<span class="badge ${remainingBadgeClass(displayRemaining)}" style="padding:.1em .4em; font-size:.72rem;">진행 ${displayUsed}·잔여 ${displayRemaining}회</span>`
     : '';
-  const statusBadge = member ? memberStatusBadgeHtml(member, isTrial) : '';
+  const statusBadge = (!isTrial && member) ? memberStatusBadgeHtml(member, isTrial) : '';
 
-  const isUnresolved = !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
+  const isUnresolved = !isTrial && !!c.member_id && !c.cancelled && !c.absent && !checkedIn && c.class_date < todayStr();
   const unresolvedBadge = isUnresolved
     ? '<span class="badge badge-warning" style="padding:.1em .4em; font-size:.72rem;" title="지난 수업인데 출석/결석 처리가 안 되어 있어요">미확인</span>'
     : '';
