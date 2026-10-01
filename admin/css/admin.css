@@ -456,9 +456,20 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .checkbox-inline input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
 
 /* ===== Month grid ===== */
-.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)) 52px; gap: 6px; }
 .month-daylabel { text-align: center; font-size: .8rem; color: var(--text-muted); font-weight: 700; padding-bottom: 6px; }
 .month-cell { background: var(--bg-alt); border-radius: 10px; min-height: 92px; padding: 6px; cursor: pointer; }
+.month-week-total {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--cyan-dark);
+  background: var(--bg-alt);
+  border-radius: 10px;
+}
 .month-cell.other-month { opacity: .4; }
 .month-cell .date-num { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px; }
 .week-col.holiday, .month-cell.holiday { background: var(--danger-bg); }
@@ -526,7 +537,7 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 
   .week-grid { grid-template-columns: repeat(7, minmax(132px, 1fr)); }
   .week-col { padding: 10px; }
-  .month-grid { grid-template-columns: repeat(7, minmax(76px, 1fr)); overflow-x: auto; }
+  .month-grid { grid-template-columns: repeat(7, minmax(76px, 1fr)) 44px; overflow-x: auto; }
   .class-pill {
     white-space: normal;
     overflow: visible;

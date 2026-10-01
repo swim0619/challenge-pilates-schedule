@@ -664,14 +664,31 @@ function renderMonthView() {
 
   const mondayFirstLabels = [...DAY_LABELS.slice(1), DAY_LABELS[0]];
 
+  // 한 수업이 "실제로 진행됐다"고 셀 수 있는 조건: 회원이 있고, 출석 체크됐거나(일반 수업)
+  // 체험수업인데 완료 체크된 경우. 예정일 뿐인 미래 수업은 세지 않는다.
+  const isConducted = (c) => {
+    if (!c.member_id || c.cancelled) return false;
+    if (attendanceByClassId[c.id]) return true;
+    const m = membersById[c.member_id];
+    const trial = !!m && (m.status === 'trial' || !!c.is_trial);
+    return trial && !!c.completed;
+  };
+
+  const weekRows = [];
+  for (let i = 0; i < cells.length; i += 7) weekRows.push(cells.slice(i, i + 7));
+
   bodyEl.innerHTML = `
     <div class="month-grid">
       ${mondayFirstLabels.map((l) => `<div class="month-daylabel">${l}</div>`).join('')}
-      ${cells.map((cellDate) => {
-        const isOtherMonth = cellDate.getMonth() !== month;
-        const dateStr = toDateStr(cellDate);
-        const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled).sort((a, b) => a.start_time.localeCompare(b.start_time));
-        return `
+      <div class="month-daylabel">진행</div>
+      ${weekRows.map((weekCells) => {
+        let weekCount = 0;
+        const cellsHtml = weekCells.map((cellDate) => {
+          const isOtherMonth = cellDate.getMonth() !== month;
+          const dateStr = toDateStr(cellDate);
+          const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled).sort((a, b) => a.start_time.localeCompare(b.start_time));
+          weekCount += dayClasses.filter(isConducted).length;
+          return `
           <div class="month-cell ${isOtherMonth ? 'other-month' : ''} ${KOREAN_HOLIDAYS[dateStr] ? 'holiday' : ''}" data-date-cell="${dateStr}">
             <div class="date-num">${cellDate.getDate()}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</div>
             ${dayClasses.map((c) => {
@@ -686,6 +703,8 @@ function renderMonthView() {
             }).join('')}
           </div>
         `;
+        }).join('');
+        return cellsHtml + `<div class="month-week-total" title="이번 주 진행된 수업 수">${weekCount}회</div>`;
       }).join('')}
     </div>
   `;
