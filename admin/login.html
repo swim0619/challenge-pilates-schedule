@@ -79,7 +79,7 @@
   (async () => {
     if (!window.sb) return;
     const { data: { session } } = await sb.auth.getSession();
-    if (session) location.href = 'index.html';
+    if (session) location.href = 'schedule.html';
   })();
 
   form.addEventListener('submit', async (e) => {
@@ -116,7 +116,7 @@
 
       const name = form.name.value.trim() || email.split('@')[0];
       await sb.from('profiles').insert({ id: data.user.id, name, role: 'instructor' });
-      location.href = 'index.html';
+      location.href = 'schedule.html';
       return;
     }
 
@@ -140,7 +140,7 @@
       await sb.from('profiles').insert({ id: data.user.id, name: email.split('@')[0], role: 'instructor' });
     }
 
-    location.href = 'index.html';
+    location.href = 'schedule.html';
   });
 </script>
 </body>

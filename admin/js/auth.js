@@ -35,7 +35,7 @@ async function guardPage({ ownerOnly = false } = {}) {
 
   if (ownerOnly && profile.role !== 'owner') {
     alert('원장 전용 페이지입니다.');
-    location.href = 'index.html';
+    location.href = 'schedule.html';
     return null;
   }
 
