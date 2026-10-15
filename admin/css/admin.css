@@ -471,6 +471,10 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
   border-radius: 10px;
 }
 .month-cell.other-month { opacity: .4; }
+.month-cell.today { box-shadow: inset 0 0 0 2px var(--cyan); background: var(--white); }
+.month-cell.today.holiday { background: var(--danger-bg); }
+.month-cell.today .date-num { color: var(--cyan-dark); }
+.month-cell .today-badge { font-size: .62rem; padding: .05em .45em; }
 .month-cell .date-num { font-size: .8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; display: flex; align-items: baseline; gap: 4px; }
 .week-col.holiday, .month-cell.holiday { background: var(--danger-bg); }
 .holiday-label { color: var(--danger); font-weight: 700; }

@@ -689,8 +689,8 @@ function renderMonthView() {
           const dayClasses = allClasses.filter((c) => c.class_date === dateStr && !c.cancelled).sort((a, b) => a.start_time.localeCompare(b.start_time));
           weekCount += dayClasses.filter(isConducted).length;
           return `
-          <div class="month-cell ${isOtherMonth ? 'other-month' : ''} ${KOREAN_HOLIDAYS[dateStr] ? 'holiday' : ''}" data-date-cell="${dateStr}">
-            <div class="date-num">${cellDate.getDate()}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</div>
+          <div class="month-cell ${isOtherMonth ? 'other-month' : ''} ${KOREAN_HOLIDAYS[dateStr] ? 'holiday' : ''} ${dateStr === todayStr() ? 'today' : ''}" data-date-cell="${dateStr}">
+            <div class="date-num">${cellDate.getDate()}${dateStr === todayStr() ? '<span class="today-badge">오늘</span>' : ''}${KOREAN_HOLIDAYS[dateStr] ? `<span class="holiday-label">${KOREAN_HOLIDAYS[dateStr]}</span>` : ''}</div>
             ${dayClasses.map((c) => {
               const pillCheckedIn = !!attendanceByClassId[c.id];
               const pillPersonal = !c.member_id;
