@@ -179,6 +179,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         class_date: classDate,
         day_of_week: new Date(classDate + 'T00:00:00').getDay(),
         paid: form.paid.checked,
+        new_reg: form.new_reg.checked,
         is_trial: form.class_is_trial.checked,
       }).eq('id', id));
 
@@ -231,6 +232,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           class_date: rowDate,
           day_of_week: d.getDay(),
           paid: i === 0 ? form.paid.checked : false, // 결제일은 첫 수업에만, 반복 복사본엔 안 붙인다
+          new_reg: i === 0 ? form.new_reg.checked : false,
           is_trial: i === 0 ? (form.class_is_trial.checked || form.is_trial.checked) : false,
         });
       }
@@ -412,7 +414,7 @@ async function loadMemberOptions() {
 async function loadSchedule() {
   const { data, error } = await sb
     .from('classes')
-    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, absent, paid, is_trial, instructor:profiles(id, name)')
+    .select('id, title, member_id, class_date, day_of_week, start_time, end_time, capacity, active, cancelled, completed, absent, paid, new_reg, is_trial, instructor:profiles(id, name)')
     .eq('active', true)
     .order('class_date')
     .order('start_time');
@@ -571,7 +573,7 @@ function classCardHtml(c) {
   const isPersonalDone = !c.member_id && c.completed;
   const isPersonal = !c.member_id;
   return `
-    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''}"${c.paid ? ' title="결제일"' : ''}>
+    <div class="week-class ${checkedIn ? 'checked-in' : ''} ${isPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${isUnresolved ? 'unresolved' : ''} ${isPersonal ? 'personal' : ''} ${isTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''} ${c.new_reg ? 'new-reg' : ''}"${(c.paid || c.new_reg) ? ` title="${[c.paid && '결제일', c.new_reg && '신규등록'].filter(Boolean).join(' · ')}"` : ''}>
       <div class="card-menu owner-only">
         <button class="card-menu-btn" data-menu-toggle="${c.id}" type="button">⋯</button>
         <div class="card-menu-dropdown hidden" data-menu="${c.id}">
@@ -698,7 +700,7 @@ function renderMonthView() {
               const pillMember = c.member_id ? membersById[c.member_id] : null;
               const pillTrial = !!pillMember && (pillMember.status === 'trial' || !!c.is_trial);
               return `
-              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonal ? 'personal' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}${c.paid ? ' (결제일)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
+              <span class="class-pill ${pillCheckedIn ? 'checked-in' : ''} ${pillPersonal ? 'personal' : ''} ${pillPersonalDone ? 'personal-done' : ''} ${c.cancelled ? 'cancelled' : ''} ${c.absent ? 'absent' : ''} ${pillTrial ? 'trial' : ''} ${c.paid ? 'paid-day' : ''} ${c.new_reg ? 'new-reg' : ''}" data-edit="${c.id}" title="${formatTime(c.start_time)} ${c.title}${c.cancelled ? ' (취소됨)' : ''}${c.absent ? ' (결석)' : ''}${c.paid ? ' (결제일)' : ''}${c.new_reg ? ' (신규등록)' : ''}">${formatTime(c.start_time)} ${c.title}</span>
             `;
             }).join('')}
           </div>
@@ -858,6 +860,7 @@ function openEdit(id, classes) {
   form.is_trial.checked = false;
   updateTrialFieldsVisibility(form);
   form.paid.checked = !!c.paid;
+  form.new_reg.checked = !!c.new_reg;
   form.class_is_trial.checked = !!c.is_trial;
   form.repeat_weekly.checked = false;
   document.getElementById('repeat-weeks-field').classList.add('hidden');
