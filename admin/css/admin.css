@@ -429,6 +429,11 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 /* 신규등록: 보라색 링(box-shadow). 결제일 빨강 outline 과 같은 날이면 빨강을 한 칸 바깥으로 민다 */
 .week-class.new-reg { box-shadow: 0 0 0 3px #8e24aa, var(--shadow); }
 .week-class.new-reg.paid-day { outline-offset: 3px; }
+/* 아웃: 짙은 회색 링. 신규등록 링과 같이 있으면 바깥에 한 겹 더, 결제일 outline 은 그만큼 더 바깥으로 */
+.week-class.is-out { box-shadow: 0 0 0 3px #263238, var(--shadow); }
+.week-class.is-out.paid-day { outline-offset: 3px; }
+.week-class.new-reg.is-out { box-shadow: 0 0 0 3px #8e24aa, 0 0 0 6px #263238, var(--shadow); }
+.week-class.new-reg.is-out.paid-day { outline-offset: 6px; }
 .week-class .time { font-weight: 700; color: var(--navy-dark); display: block; font-size: .85rem; }
 .week-class .title { display: block; margin: .2em 0; font-weight: 600; }
 .week-class .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 6px; }
@@ -505,6 +510,10 @@ td.numeric { text-align: right; font-variant-numeric: tabular-nums; }
 .class-pill.paid-day { outline: 2px solid #e53935; outline-offset: 0; }
 .class-pill.new-reg { box-shadow: 0 0 0 2px #8e24aa; }
 .class-pill.new-reg.paid-day { outline-offset: 2px; }
+.class-pill.is-out { box-shadow: 0 0 0 2px #263238; }
+.class-pill.is-out.paid-day { outline-offset: 2px; }
+.class-pill.new-reg.is-out { box-shadow: 0 0 0 2px #8e24aa, 0 0 0 4px #263238; }
+.class-pill.new-reg.is-out.paid-day { outline-offset: 4px; }
 
 /* ===== Utility ===== */
 .flex-between { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
