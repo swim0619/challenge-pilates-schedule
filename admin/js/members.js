@@ -185,7 +185,7 @@ async function loadMembers(search = '') {
 
   let query = sb
     .from('members')
-    .select('id, name, phone, preferred_schedule, status, created_at, session_passes(remaining_sessions, active), attendance(id)')
+    .select('id, name, phone, preferred_schedule, status, created_at, session_passes(remaining_sessions, active), attendance(id, classes(is_trial))')
     .order('name');
 
   if (search) query = query.ilike('name', `%${search}%`);
@@ -206,7 +206,7 @@ async function loadMembers(search = '') {
     const remaining = (m.session_passes || [])
       .filter((p) => p.active)
       .reduce((sum, p) => sum + p.remaining_sessions, 0);
-    const usedCount = (m.attendance || []).length;
+    const usedCount = (m.attendance || []).filter((a) => !a.classes?.is_trial).length; // 체험수업은 무료라 횟수에서 제외
     const status = memberStatusBadge(m);
     return `
       <tr class="member-row" data-id="${m.id}" style="cursor:pointer">
@@ -230,17 +230,19 @@ async function loadMembers(search = '') {
 async function selectMember(memberId) {
   currentMemberId = memberId;
 
-  const [{ data: member }, { data: passes }, { count: usedCount }, { data: attRows }] = await Promise.all([
+  const [{ data: member }, { data: passes }, { data: attRows }] = await Promise.all([
     sb.from('members').select('id, name, phone, memo, preferred_schedule, status, created_at').eq('id', memberId).single(),
     sb.from('session_passes').select('*').eq('member_id', memberId).order('purchased_at', { ascending: false }),
-    sb.from('attendance').select('id', { count: 'exact', head: true }).eq('member_id', memberId),
-    sb.from('attendance').select('pass_id').eq('member_id', memberId),
+    sb.from('attendance').select('pass_id, classes(is_trial)').eq('member_id', memberId),
   ]);
 
   if (!member) return;
 
+  // 체험수업 출석은 이용권을 쓰지 않으므로 횟수 계산에서 뺀다
+  const paidAttendance = (attRows || []).filter((a) => !a.classes?.is_trial);
+  const usedCount = paidAttendance.length;
   attCountByPass = {};
-  (attRows || []).forEach((a) => {
+  paidAttendance.forEach((a) => {
     attCountByPass[a.pass_id] = (attCountByPass[a.pass_id] || 0) + 1;
   });
 

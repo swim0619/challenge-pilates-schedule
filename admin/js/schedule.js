@@ -525,7 +525,7 @@ function classCardHtml(c) {
       </label>
     `;
   } else if (c.member_id) {
-    const disabled = !checkedIn && !hasPass;
+    const disabled = !checkedIn && !hasPass && !c.is_trial; // 체험수업은 이용권 없이도 출석 가능
     attendanceBtn = `
       <label class="attend-check ${disabled ? 'disabled' : ''}">
         <input type="checkbox" data-attend-toggle="${c.id}" ${checkedIn ? 'checked' : ''} ${disabled ? 'disabled' : ''}>
@@ -789,15 +789,16 @@ async function checkInClass(classId) {
   const member = membersById[c.member_id];
   const pass = member && member.activePasses[0];
 
-  if (!pass) {
+  if (!pass && !c.is_trial) {
     alert('사용 가능한 이용권이 없습니다.');
     return;
   }
 
+  // 체험수업은 무료라 DB 트리거가 이용권을 차감하지 않는다 (이용권이 없으면 pass_id 도 비워둠)
   const { error } = await sb.from('attendance').insert({
     class_id: classId,
     member_id: c.member_id,
-    pass_id: pass.id,
+    pass_id: pass ? pass.id : null,
     session_date: c.class_date,
   });
 
