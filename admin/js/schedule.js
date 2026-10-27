@@ -451,7 +451,7 @@ function computeAttendanceRank() {
   const byPass = {};
   allClasses.forEach((c) => {
     const att = attendanceByClassId[c.id];
-    if (!att) return;
+    if (!att || c.is_trial) return; // 체험수업은 무료라 순번에 넣지 않는다
     (byPass[att.pass_id] = byPass[att.pass_id] || []).push(c.id);
   });
   Object.values(byPass).forEach((classIds) => {
