@@ -37,6 +37,8 @@ class Block:
     place: str = ""                 # place 블록: 네이버 지도에서 검색할 장소명
     layout: str = "개별사진"          # image 블록: 개별사진 | 콜라주 | 슬라이드
     style: str = ""                 # quote/heading 블록: 인용구 스타일 이름
+    pack: str = ""                  # sticker 블록: 스티커 묶음 이름 (예: cafe_004 여우·곰)
+    index: int = 0                  # sticker 블록: 묶음 안 순서 (0부터, 왼쪽 위에서 가로로)
 
     def files(self):
         """image 블록이 실제로 넣을 파일 목록."""
@@ -114,6 +116,8 @@ class Post:
                 out.append("")
             elif b.type == "place":
                 out += ["📍 %s" % b.place, ""]
+            elif b.type == "sticker":
+                out += ["[스티커 %s-%d]" % (b.pack, b.index + 1), ""]
         if self.tags:
             out += ["", "**숏테일**", " ".join("#" + t for t in self.tags)]
         if self.long_tags:

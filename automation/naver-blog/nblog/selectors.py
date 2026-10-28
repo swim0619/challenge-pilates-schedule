@@ -133,6 +133,13 @@ MAP_CONFIRM = ["button.se-popup-button-confirm"]
 # 본문에 삽입된 지도 컴포넌트 (확인용)
 MAP_COMPONENT = ".se-component.se-placesMap"
 
+# 스티커: 툴바 버튼을 누르면 오른쪽에 패널이 열린다. 묶음 탭 글씨가 묶음 이름(cafe_004 등)이고,
+# 스티커 버튼에는 0부터 매긴 data-index 가 붙는다.
+TOOLBAR_STICKER = "button.se-sticker-toolbar-button"
+STICKER_TAB = "button.se-tab-button"
+STICKER_ITEM = "button.se-sidebar-element-sticker[data-index='{index}']"
+STICKER_COMPONENT = ".se-component.se-sticker"
+
 # 상단 헤더의 저장(임시저장) 버튼. '발행'은 절대 누르지 않는다.
 SAVE_DRAFT = [
     "button[class*='save_btn']",

@@ -17,10 +17,12 @@ HEAD_STYLE = "따옴표"        # 소제목 인용구 스타일 (인용구1: 위
 HEAD_EMOJI_ON = False       # 인용구 소제목에는 이모지를 쓰지 않는다
 ALIGN = "center"            # 본문 정렬 (모바일 가독성)
 DEVICE_MODE = "mobile"      # 글 쓰기 전에 에디터를 이 화면으로 바꾼다
-QUOTE_BOLD = False          # 인용구1 은 스타일 자체가 기울임이라 굵게는 쓰지 않는다
+QUOTE_BOLD = True           # 인용구 안 글씨는 모두 굵게 (2026-10-28 원장님 요청, 이전엔 기울임만)
 # 모바일 본문 폭(360px) 기준. 딱 맞추기보다 말의 흐름에서 끊는다.
 LINE_MIN, LINE_MAX = 10, 22   # 모바일 360px 에 15~16px 글씨가 한 줄 22자 안팎 들어간다
-BLANK_LINE = True           # 문장 흐름이 바뀌는 자리에 한 줄 띄기
+BLANK_LINE = True           # 문장 사이를 띄운다
+SENTENCE_BLANK = 2          # 문장이 끝날 때마다, 그리고 사진 앞에 띄울 줄 수 (한 문단이 길어 보이지 않게)
+INFO_FIRST = True           # 이용정보·지도를 글 맨 앞에 둔다 (상위 체험단 글 구성)
 QUOTE_LEAD_BLANK = 2        # 인용구(소제목) 앞에 띄울 줄 수
 MENU_STYLE = "프레임"         # 메뉴·가격 목록을 담을 인용구 스타일
 INFO_STYLE = "포스트잇"        # 주소·영업시간 같은 이용정보를 담을 인용구 스타일
@@ -29,6 +31,7 @@ MENU_SIZE = "16"            # 메뉴 목록 글자 크기
 MENU_BOLD = True            # 메뉴 목록 굵게
 MENU_ITALIC = True          # 메뉴 목록 기울이기
 HIGHLIGHT = True            # ==강조== 구간에 연한 노랑 형광펜
+HIGHLIGHT_BOLD_ITALIC = True  # 형광펜 구간은 굵게 + 기울임까지
 
 HEAD_EMOJI = ["🌿", "💪", "🔥", "✨", "📌", "🍀", "🔎", "🌙"]
 
@@ -177,9 +180,18 @@ class Editor:
                 self.type(m.group(1))
                 self.set_bold(False)
             else:                                # ==형광펜==
+                # 인용구 안처럼 이미 굵게·기울임이 켜진 곳도 있으니 끝나면 원래 상태로 돌린다
+                was_bold = self.bold_is_on()
+                was_italic = self._toggle_is_on(S.TOOLBAR_ITALIC)
                 if HIGHLIGHT:
                     self.set_highlight(True)
+                if HIGHLIGHT_BOLD_ITALIC:
+                    self.set_bold(True)
+                    self.set_italic(True)
                 self.type(m.group(2))
+                if HIGHLIGHT_BOLD_ITALIC:
+                    self.set_bold(bool(was_bold))
+                    self.set_italic(bool(was_italic))
                 if HIGHLIGHT:
                     self.set_highlight(False)
             pos = m.end()
@@ -291,8 +303,23 @@ def write_post(ed, post, log=print):
     ed.page.wait_for_timeout(300)
     _set_align(ed)
 
+    blocks = list(post.blocks)
+    if INFO_FIRST:
+        # 이용정보·지도를 맨 앞으로 (나머지 순서는 그대로)
+        front = [b for b in blocks if b.type in ("info", "place")]
+        blocks = front + [b for b in blocks if b.type not in ("info", "place")]
+
     head_i = 0
-    for idx, block in enumerate(post.blocks):
+    prev = None
+    for idx, block in enumerate(blocks):
+        # 앞 문단의 마지막 줄에서 Enter 를 친 상태라 빈 줄 하나는 이미 있다.
+        # 다음 문단 앞에는 SENTENCE_BLANK 줄, 사진은 그 빈 줄 아래에 붙으므로 하나 덜 띄운다.
+        if prev == "paragraph" and BLANK_LINE:
+            if block.type == "paragraph":
+                ed.enter(SENTENCE_BLANK)
+            elif block.type in ("image", "sticker"):
+                ed.enter(max(0, SENTENCE_BLANK - 1))
+        prev = block.type
         try:
             if block.type == "heading":
                 text = block.text
@@ -310,7 +337,7 @@ def write_post(ed, post, log=print):
                         ed.type_rich(line)
                         ed.enter()
                     if BLANK_LINE and gi < len(groups) - 1:
-                        ed.enter()   # 문장 사이 한 줄 띄기
+                        ed.enter(SENTENCE_BLANK)   # 문장이 끝날 때마다 띄우기
 
             elif block.type == "list":
                 for item in block.items:
@@ -320,13 +347,15 @@ def write_post(ed, post, log=print):
 
             elif block.type == "quote":
                 _lead_blank(ed, idx)
-                _insert_quote(ed, block.text, style=block.style, log=log)
+                # 스타일을 비워 두면 에디터가 '마지막에 쓴 인용구'를 넣는다.
+                # 이용정보(포스트잇)가 맨 앞으로 오면서 제목이 포스트잇으로 들어간 적이 있다.
+                _insert_quote(ed, block.text, style=block.style or HEAD_STYLE, log=log)
 
             elif block.type == "info" and block.items:
                 # 주소·전화·영업시간 같은 이용정보를 메모지 박스에 세로로 나열한다
                 _lead_blank(ed, idx)
                 _insert_quote(ed, list(block.items), style=block.style or INFO_STYLE,
-                              log=log, bold=False, italic=False, size=BODY_SIZE)
+                              log=log, bold=QUOTE_BOLD, italic=False, size=BODY_SIZE)
 
             elif block.type == "menu" and block.items:
                 # 메뉴는 문장으로 풀지 않고 '이름  가격' 으로 나열해 프레임 안에 넣는다
@@ -354,6 +383,9 @@ def write_post(ed, post, log=print):
 
             elif block.type == "place" and block.place:
                 _insert_place(ed, block.place, log=log)
+
+            elif block.type == "sticker" and block.pack:
+                _insert_sticker(ed, block.pack, block.index, log=log)
 
         except Exception as exc:
             log("  · %d번째 블록(%s) 처리 중 오류, 건너뜁니다: %s"
@@ -589,9 +621,10 @@ def _insert_place(ed, query, log=print):
         item.wait_for(state="visible", timeout=10000)
         found = item.locator(S.MAP_RESULT_TITLE).inner_text().strip()
         # 검색어와 전혀 다른 곳이 첫 결과로 잡히는 일이 있다(동명이인 상호).
-        # 검색어의 낱말이 하나도 안 겹치면 넣지 않고 알린다.
+        # 첫 낱말이 상호이므로 그것까지 맞아야 한다. 예전에 '쪽갈비대통령 길동역점'을
+        # 찾았는데 '스포애니 길동역점'이 들어간 적이 있다 — 지점명만 겹쳐도 통과했기 때문.
         words = [w for w in query.split() if len(w) > 1]
-        if words and not any(w in found for w in words):
+        if words and words[0] not in found:
             raise RuntimeError(
                 "검색 결과 '%s' 가 검색어 '%s' 와 맞지 않아 넣지 않았습니다" % (found, query))
         # '추가' 버튼은 항목에 마우스를 올려야 나타난다
@@ -610,6 +643,39 @@ def _insert_place(ed, query, log=print):
                 break
             except Exception:
                 continue
+    finally:
+        _new_body_paragraph(ed)
+
+
+def _insert_sticker(ed, pack, index, log=print):
+    """스티커 패널에서 묶음(pack)의 index 번째 스티커를 커서 자리에 넣는다.
+
+    묶음 탭은 가로 스크롤 안에 숨어 있으면 다른 요소가 클릭을 가로채므로
+    DOM 에서 직접 click() 을 부른다.
+    """
+    try:
+        btn = ed.loc(S.TOOLBAR_STICKER).first
+        if S.TOGGLE_ON_CLASS not in (btn.get_attribute("class") or ""):
+            btn.click(timeout=4000)
+            ed.page.wait_for_timeout(1200)
+        found = ed.ctx.evaluate(
+            """([sel, name]) => { const t = [...document.querySelectorAll(sel)]
+                 .find(b => b.innerText.trim() === name);
+               if (t) t.click(); return !!t; }""", [S.STICKER_TAB, pack])
+        if not found:
+            raise RuntimeError("스티커 묶음 '%s' 탭이 없습니다" % pack)
+        ed.page.wait_for_timeout(1200)
+        before = ed.loc(S.STICKER_COMPONENT).count()
+        ed.loc(S.STICKER_ITEM.format(index=index)).first.click(timeout=5000)
+        for _ in range(20):
+            ed.page.wait_for_timeout(300)
+            if ed.loc(S.STICKER_COMPONENT).count() > before:
+                break
+        else:
+            raise RuntimeError("스티커가 본문에 나타나지 않았습니다")
+        log("  · 스티커 삽입: %s-%d" % (pack, index + 1))
+    except Exception as exc:
+        log("  · 스티커 삽입 실패(%s-%d): %s" % (pack, index + 1, str(exc).splitlines()[0][:60]))
     finally:
         _new_body_paragraph(ed)
 
@@ -719,19 +785,10 @@ def _flow_lines(sentence, lo, hi):
 
 
 def _sentence_groups(text, lo=LINE_MIN, hi=LINE_MAX):
-    """문단을 '문장 덩어리'로 나눈다. 덩어리 사이에 한 줄을 띄우면 숨통이 트인다.
-
-    한 줄짜리 짧은 문장이 연달아 나오면 같은 덩어리로 묶는다.
-    문장마다 무조건 띄우면 너무 뚝뚝 끊겨 보이기 때문이다.
-    """
-    groups = []
-    for sent in [x.strip() for x in _SENT_RE.split(_glue_bold(text.strip())) if x.strip()]:
-        lines = [l.replace(_GLUE, " ") for l in _flow_lines(sent, lo, hi)]
-        if groups and len(lines) == 1 and len(groups[-1]) == 1:
-            groups[-1].extend(lines)
-        else:
-            groups.append(lines)
-    return groups
+    """문단을 문장 단위로 나눈다. 각 문장은 모바일 폭에 맞춘 줄 목록이다."""
+    # 예전엔 한 줄짜리 문장을 묶었는데, 문단이 길어 보인다고 해서(2026-10-28) 문장마다 나눈다.
+    return [[l.replace(_GLUE, " ") for l in _flow_lines(sent, lo, hi)]
+            for sent in [x.strip() for x in _SENT_RE.split(_glue_bold(text.strip())) if x.strip()]]
 
 
 def _split_sentences(text, lo=LINE_MIN, hi=LINE_MAX):
